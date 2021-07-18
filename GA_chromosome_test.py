@@ -34,7 +34,7 @@ def random_fraction(count, summation, is_even=False):
     [type]
         [description]
     """
-    np.random.seed(overall_seed)
+    # np.random.seed(overall_seed)
     if not is_even:
         # random generate several numbers
         random_num = np.random.rand(count)
@@ -68,7 +68,7 @@ def RA_float(amplifier, count, lower_bound=0.1, high_bound=1.0,
         [description]
     """
     # format function returns string, so need float() to transform it to float.
-    random.seed(seed)
+    # random.seed(seed)
     result = [float(format(amplifier * np.random.uniform(
               lower_bound, high_bound), round)) for i in range(count)]
     return result
@@ -93,7 +93,7 @@ def RA_int(count, amplifier=1, lower_bound=1, high_bound=16, seed=overall_seed):
     [type]
         [description]
     """
-    random.seed(overall_seed)
+    # random.seed(overall_seed)
     result = [int(amplifier * random.randint(lower_bound, high_bound))
               for i in range(count)]
 
@@ -118,7 +118,8 @@ def RA_tuple(count, high_bound=4, is_even=True):
         [description]
     """
     # randomly generate the count of this tuple
-    count = RA_int(count=count, high_bound=high_bound)[0]
+    # here, the count means just generate one random int number
+    count = RA_int(count=1, high_bound=high_bound)[0]
     # get the tuple
     result = random_fraction(count, 1, is_even)
 
@@ -289,17 +290,21 @@ def print_meteoroid(meteoroid):
     print("meteoroid.cloud_mass_frac: ", meteoroid.cloud_mass_frac)
 
 
+def print_FCMparameters(parameters):
+    print("precision: ", parameters.precision)
+    print(parameters.precision)
+
+
 group_count = 1
 atmosphere = atm.US_standard_atmosphere()
 # randomly generated the structural groups
 structural_groups = create_structural_group(2.5e3, 600, 1)
-# print(structural_groups[0])
 print_structural_groups(structural_groups, 1)
 
 # set a constant generate meteoroid
 meteoroid = create_FCMmeteoroid(19.16, 18.3, 2.5e3, 19.8/2, 600, 0,
                                 structural_groups)
-
+print_meteoroid(meteoroid)
 
 # create FCMparamters, just randomly generate ablation_coeff
 paramters = create_FCMparameters(atmosphere, precision=1e-4,
