@@ -74,7 +74,7 @@ def RA_float(amplifier, count, lower_bound=0.1, high_bound=1.0,
     return result
 
 
-def RA_int(count, amplifier=1, lower_bound=1, high_bound=16, seed=overall_seed):
+def RA_int(count, amplifier=1, lower_bound=2, high_bound=16, seed=overall_seed):
     """[Randomly generate int numbers]
 
     Parameters
@@ -84,9 +84,11 @@ def RA_int(count, amplifier=1, lower_bound=1, high_bound=16, seed=overall_seed):
     amplifier : int, optional
         [description], by default 1
     lower_bound : int, optional
-        [description], by default 1
+        [description], by default 2
     high_bound : int, optional
         [description], by default 16
+    seed : [type], optional
+        [description], by default overall_seed
 
     Returns
     -------
@@ -252,7 +254,6 @@ def create_FCMparameters(atmosphere, precision, ablation_coeff,
 
 
 def plot_simulation(dEdz):
-    
     fig, ax = plt.subplots(1, 1, figsize=(10, 7))
     plt.plot(dEdz.to_numpy(), dEdz.index.to_numpy(), label='fcm')
     
@@ -279,7 +280,6 @@ def print_structural_groups(groups, group_count):
         print("fragment_mass_fractions: ", groups[i].fragment_mass_fractions)
 
 
-
 def print_meteoroid(meteoroid):
     print("############ meteoroid's information is: ##############")
     print("meteoroid.velocity: ", meteoroid.velocity)
@@ -297,25 +297,37 @@ def print_FCMparameters(parameters):
 
 group_count = 1
 atmosphere = atm.US_standard_atmosphere()
-# randomly generated the structural groups
-structural_groups = create_structural_group(2.5e3, 600, 1)
-print_structural_groups(structural_groups, 1)
+# # randomly generated the structural groups
+# structural_groups = create_structural_group(2.5e3, 0.5, group_count)
+# print_structural_groups(structural_groups, group_count)
 
-# set a constant generate meteoroid
-meteoroid = create_FCMmeteoroid(19.16, 18.3, 2.5e3, 19.8/2, 600, 0,
-                                structural_groups)
-print_meteoroid(meteoroid)
+# # set a constant generate meteoroid
+# meteoroid = create_FCMmeteoroid(15.8, 17.8, 1.64e3, 4.5/2, 0.5, 0,
+#                                 structural_groups)
+# print_meteoroid(meteoroid)
 
-# create FCMparamters, just randomly generate ablation_coeff
-paramters = create_FCMparameters(atmosphere, precision=1e-4,
-                                 ablation_coeff=1e-8,
-                                 cloud_disp_coeff=1,
-                                 strengh_scaling_disp=0,
-                                 fragment_mass_disp=0)
+# # create FCMparamters, just randomly generate ablation_coeff
+# paramters = create_FCMparameters(atmosphere, precision=1e-4,
+#                                  ablation_coeff=1e-8,
+#                                  cloud_disp_coeff=2/3.5,
+#                                  strengh_scaling_disp=0,
+#                                  fragment_mass_disp=0)
 
-# simulate
-result = fcm.simulate_impact(paramters, meteoroid, 100,
-                             craters=False, dedz=True, final_states=True)
+# # simulate
+# result = fcm.simulate_impact(paramters, meteoroid, 100,
+#                              craters=False, dedz=True, final_states=True)
 
 
-plot_simulation(result.energy_deposition)
+# plot_simulation(result.energy_deposition)
+
+event_list = []
+for i in range(80000):
+    structural_groups = create_structural_group(2.5e3, 0.5, group_count)
+    meteoroid = create_FCMmeteoroid(15.8, 17.8, 1.64e3, 4.5/2, 0.5, 0,
+                                    structural_groups)
+    parameters = create_FCMparameters(atmosphere, precision=1e-4,
+                                      ablation_coeff=1e-8,
+                                      cloud_disp_coeff=2/3.5,
+                                      strengh_scaling_disp=0,
+                                      fragment_mass_disp=0)
+
