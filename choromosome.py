@@ -330,4 +330,3 @@ for i in range(80000):
                                       cloud_disp_coeff=2/3.5,
                                       strengh_scaling_disp=0,
                                       fragment_mass_disp=0)
-
