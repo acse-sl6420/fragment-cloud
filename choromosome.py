@@ -1,22 +1,14 @@
 # This python file is to find how to design the data structures of a chromosome
-import os
-import sys
-
 import fcm
 import fcm.atmosphere as atm
-from enum import Enum
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from numpy import random
 
-THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-BASE_PATH = os.path.abspath(os.path.join(THIS_DIR, ".."))
-if sys.path[0] != BASE_PATH:
-    sys.path.insert(0, BASE_PATH)
-
 
 overall_seed = 32
+
+
 def random_fraction(count, summation, is_even=False):
     """[Random generate several float numbers which sum up to a given number]
 
@@ -295,38 +287,44 @@ def print_FCMparameters(parameters):
     print(parameters.precision)
 
 
-group_count = 1
-atmosphere = atm.US_standard_atmosphere()
-# # randomly generated the structural groups
-# structural_groups = create_structural_group(2.5e3, 0.5, group_count)
-# print_structural_groups(structural_groups, group_count)
+if __name__ == "__main__":
+    group_count = 1
+    atmosphere = atm.US_standard_atmosphere()
+    # # randomly generated the structural groups
+    # structural_groups = create_structural_group(2.5e3, 0.5, group_count)
+    # print_structural_groups(structural_groups, group_count)
 
-# # set a constant generate meteoroid
-# meteoroid = create_FCMmeteoroid(15.8, 17.8, 1.64e3, 4.5/2, 0.5, 0,
-#                                 structural_groups)
-# print_meteoroid(meteoroid)
+    # # set a constant generate meteoroid
+    # meteoroid = create_FCMmeteoroid(15.8, 17.8, 1.64e3, 4.5/2, 0.5, 0,
+    #                                 structural_groups)
+    # print_meteoroid(meteoroid)
 
-# # create FCMparamters, just randomly generate ablation_coeff
-# paramters = create_FCMparameters(atmosphere, precision=1e-4,
-#                                  ablation_coeff=1e-8,
-#                                  cloud_disp_coeff=2/3.5,
-#                                  strengh_scaling_disp=0,
-#                                  fragment_mass_disp=0)
+    # # create FCMparamters, just randomly generate ablation_coeff
+    # paramters = create_FCMparameters(atmosphere, precision=1e-4,
+    #                                  ablation_coeff=1e-8,
+    #                                  cloud_disp_coeff=2/3.5,
+    #                                  strengh_scaling_disp=0,
+    #                                  fragment_mass_disp=0)
 
-# # simulate
-# result = fcm.simulate_impact(paramters, meteoroid, 100,
-#                              craters=False, dedz=True, final_states=True)
+    # # simulate
+    # result = fcm.simulate_impact(paramters, meteoroid, 100,
+    #                              craters=False, dedz=True, final_states=True)
 
 
-# plot_simulation(result.energy_deposition)
+    # plot_simulation(result.energy_deposition)
 
-event_list = []
-for i in range(80000):
-    structural_groups = create_structural_group(2.5e3, 0.5, group_count)
-    meteoroid = create_FCMmeteoroid(15.8, 17.8, 1.64e3, 4.5/2, 0.5, 0,
-                                    structural_groups)
-    parameters = create_FCMparameters(atmosphere, precision=1e-4,
-                                      ablation_coeff=1e-8,
-                                      cloud_disp_coeff=2/3.5,
-                                      strengh_scaling_disp=0,
-                                      fragment_mass_disp=0)
+    event_list = []
+    for i in range(1):
+        structural_groups = create_structural_group(2.5e3, 0.5, group_count)
+        print_structural_groups(structural_groups, group_count)
+        meteoroid = create_FCMmeteoroid(15.8, 17.8, 1.64e3, 4.5/2, 0.5, 0,
+                                        structural_groups)
+        parameters = create_FCMparameters(atmosphere, precision=1e-4,
+                                          ablation_coeff=1e-8,
+                                          cloud_disp_coeff=2/3.5,
+                                          strengh_scaling_disp=0,
+                                          fragment_mass_disp=0)
+
+        result = fcm.simulate_impact(parameters, meteoroid, 100,
+                                     craters=False, dedz=True, final_states=True)
+        plot_simulation(result.energy_deposition)
