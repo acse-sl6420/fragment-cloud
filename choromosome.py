@@ -313,7 +313,7 @@ if __name__ == "__main__":
 
     # plot_simulation(result.energy_deposition)
 
-    event_list = []
+    event_list = [[]]
     for i in range(1):
         structural_groups = create_structural_group(2.5e3, 0.5, group_count)
         print_structural_groups(structural_groups, group_count)
@@ -324,7 +324,8 @@ if __name__ == "__main__":
                                           cloud_disp_coeff=2/3.5,
                                           strengh_scaling_disp=0,
                                           fragment_mass_disp=0)
+        event_list.append = [[structural_groups]]
 
         result = fcm.simulate_impact(parameters, meteoroid, 100,
                                      craters=False, dedz=True, final_states=True)
-        plot_simulation(result.energy_deposition)
+        # plot_simulation(result.energy_deposition)
