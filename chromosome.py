@@ -77,7 +77,7 @@ def random_fraction(count, summation, is_even=False):
     return result
 
 
-def RA_logdis_float(low, high, higher_bound):
+def RA_logdis_float(low, high):
     """[using log uniform distribution to generate a random number]
 
     Parameters
@@ -92,15 +92,8 @@ def RA_logdis_float(low, high, higher_bound):
     [type]
         [description]
     """
-    # result = np.random.lognormal(np.log(mean), np.log(std))
-    result = 0
-
-    # generate one random number which less than higher bound
-    while (True):
-        result = np.random.lognormal(np.log(mean), np.log(std))
-
-        if (result < higher_bound):
-            return result
+    return np.exp(np.random.uniform(np.log(low), np.log(high)))
+    
 
 def RA_uniform_float(amplifier, count, lower_bound=0.1, high_bound=1.0,
                      round='.2f'):
@@ -159,17 +152,6 @@ def random_fraction(count, summation, is_even=False):
     return result
 
 
-# the index of parameters of structural group
-class sgp(Enum):
-    mass_fraction = 'mass_fraction'
-    density = 'density'
-    strength = 'strength'
-    pieces = 'pieces'
-    cloud_mass_frac = 'cloud_mass_frac'
-    strength_scaler = 'strength_scaler'
-    fragment_mass_fractions = 'fragment_mass_fraction'
-
-
 def RA_int(count, amplifier=1, lower_bound=2, high_bound=16):
     """[Randomly generate int numbers]
 
@@ -214,8 +196,7 @@ def even_fragment(count):
     return result
 
 
-def groups_generater(groups, density, strength, group_count, cloud_frac,
-                     fcm_param_loader):
+def groups_generater(groups, density, strength, group_count, cloud_frac):
     """[Generate the structural groups]
 
     Parameters
@@ -260,14 +241,16 @@ def groups_generater(groups, density, strength, group_count, cloud_frac,
 
     # transform numpy array to list
     temp = temp.tolist()
+
     for i in range(group_count):
-        groups.loc[len(groups)] = temp[i]
-    # one structural group has group_count sub-fracture
-    groups.insert(groups.shape[1], 'fragment_mass_fractions',
-                  fragment_mass_fractions)
+        index = len(groups)
+        groups.loc[index, ['mass_fraction', 'density',
+                           'strength', 'pieces',
+                           'cloud_mass_frac', 'strength_scaler']] = temp[i]
+        groups.loc[index, 'fragment_mass_fractions'] = fragment_mass_fractions[i]
 
 
-def meteroid_generater(meteroids, mean_std, velocity, angle, density,
+def meteroid_generater(meteroids, velocity, angle, density,
                        radius, strength, cloud_mass_frac, ra_velocity=False,
                        ra_angle=False, ra_density=False, ra_radius=False,
                        ra_strength=False, ra_cloud_mass_frac=False,
@@ -285,7 +268,7 @@ def meteroid_generater(meteroids, mean_std, velocity, angle, density,
         density = RA_uniform_float(density, count, 0.9, 1.1)[0]
     # random
     if ra_radius:
-        radius = RA_logdis_float(mean_std.radius_mean, mean_std.radius_std, 50)
+        radius = RA_uniform_float(radius, count, 0.9, 1.1)[0]
     if ra_strength:
         strength = RA_uniform_float(strength, count, 0.9, 1.1)[0]
     if ra_cloud_mass_frac:
@@ -314,46 +297,31 @@ def FCMparameters_generater(parameters, cloud_disp_coeff,
         [description]
     """
     count = 1
-    temp = []
     if RA_ablation:
-        ablation_coeff = RA_uniform_float(1.0, count, 0.9, 1.1)[0] * ablation_coeff
+        ablation_coeff = RA_uniform_float(ablation_coeff, count, 0.9, 1.1)[0]
     if RA_cloud_disp_coeff:
-        cloud_disp_coeff = RA_uniform_float(1.0, count, 0.9, 1.1)[0] * cloud_disp_coeff
+        cloud_disp_coeff = RA_uniform_float(cloud_disp_coeff,
+                                            count, 0.9, 1.1)[0]
     if RA_strengh_scaling_disp:
-        strengh_scaling_disp = RA_uniform_float(1.0, count, 0.9,
-                                        1.1)[0] * strengh_scaling_disp
+        strengh_scaling_disp = RA_uniform_float(strengh_scaling_disp,
+                                                count, 0.9, 1.1)[0]
     if RA_fragment_mass_disp:
-        RA_fragment_mass_disp = RA_uniform_float(1.0, count, 0.9,
-                                         1.1)[0] * RA_fragment_mass_disp
+        fragment_mass_disp = RA_uniform_float(RA_fragment_mass_disp,
+                                              count, 0.9, 1.1)[0]
     
-    temp = [ablation_coeff, cloud_disp_coeff, strengh_scaling_disp, RA_fragment_mass_disp]
+    # attention: the intial fitness value is 0
+    temp = [ablation_coeff, cloud_disp_coeff, strengh_scaling_disp,
+            fragment_mass_disp, 0]
 
     parameters.loc[len(parameters)] = temp
 
     return parameters
 
 
-def read_event(event):
-    """[read the data of event from csv files.]
-
-    Parameters
-    ----------
-    event : [Class Event]
-        [this class includes the observed events.]
-    """
-    data = pd.read_csv(os.path.join(THIS_DIR, "data", file_names[event]),
-                       sep='\t', header=0, index_col=0)
-    
-    data.columns = ["dEdz [kt TNT / km]", "min. dEdz [kt TNT / km]", "max. dEdz [kt TNT / km]"]
-    data['altitude [km]'] = data.index
-    data = data.reset_index(drop=True)
-    
-    return data
-
 def plot_simulation(dEdz):
     fig, ax = plt.subplots(1, 1, figsize=(10, 7))
     plt.plot(dEdz.to_numpy(), dEdz.index.to_numpy(), label='fcm')
-    
+
     plt.xlabel("dEdz [kt TNT / km]")
     plt.ylabel("altitude [km]")
     plt.xscale('log')
@@ -362,6 +330,20 @@ def plot_simulation(dEdz):
     # plt.savefig(filename)
 
     return fig
+
+def compact_groups(groups_dataframe, event_index, event_count, group_count):
+    groups_list = []
+    for i in range(group_count):
+        temp = groups_dataframe.loc[i + event_index * event_count]
+        groups_list.append(fcm.StructuralGroup(mass_fraction=temp['mass_fraction'], 
+                           density=temp['density'],
+                           strength=temp['strength'],
+                           pieces=int(temp['pieces']),
+                           cloud_mass_frac=temp['cloud_mass_frac'],
+                           strength_scaler=temp['strength_scaler'],
+                           fragment_mass_fractions=temp['fragment_mass_fractions']))
+    
+    return groups_list
 
 if __name__ == "__main__":
     # define the range of some parameters which maybe
@@ -376,9 +358,9 @@ if __name__ == "__main__":
     # create dataframe to store structural groups
     groups = pd.DataFrame(columns=['mass_fraction', 'density',
                                    'strength', 'pieces',
-                                   'cloud_mass_frac', 'strength_scaler'])
+                                   'cloud_mass_frac', 'strength_scaler',
+                                   'fragment_mass_fractions'])
     
-
     # get the mean and std of parameters
     mean_std = fcm_param_loader(bulk_density_range, strength_range,
                                 diameter_range, cloud_frac_range,
@@ -386,17 +368,17 @@ if __name__ == "__main__":
                                 strengh_scale_range)
 
     # ############## generate structural groups ####################
-    # uniform distribution
-    density = RA_logdis_float(mean_std.density_mean, mean_std.density_std, bulk_density_range[-1])
+    # log uniform distribution
+    density = RA_logdis_float(1500, 5000)
 
     # log uniform distribution
-    strength = RA_logdis_float(mean_std.strength_mean, mean_std.strength_std, strength_range[-1])
+    strength = RA_logdis_float(1, 10000)
     cloud_frac = RA_uniform_float(1.0, 1, 0.1, 0.9)[0]
 
     # genarate structural groups
     structural_group_count = 2
     groups_generater(groups, density, strength, structural_group_count,
-                     cloud_frac, mean_std)
+                     cloud_frac)
 
     # ################### generate meteroid ########################
     # radius is log distribution
@@ -404,23 +386,22 @@ if __name__ == "__main__":
                                        'density', 'radius',
                                        'strength', 'cloud_mass_frac'])
 
-    
-    radius = RA_logdis_float(mean_std.diameter_mean, mean_std.diameter_std,
-                             diameter_range[-1]) / 2
+    radius = 2.5
 
     # the cloud_frac is same as structural groups
-    meteroid_generater(meteoroids, mean_std, 21.3, 81, density, radius,
-                       strength, cloud_frac)
-    
+    meteroid_generater(meteoroids, 21.3, 81, density, radius,
+                       strength, cloud_frac, ra_radius=True)
+
     # ################### FCMparameters ###########
     parameters = pd.DataFrame(columns=['ablation_coeff', 'cloud_disp_coeff',
-                                       'strengh_scaling_disp', 'fragment_mass_disp'])
-    
+                                       'strengh_scaling_disp', 'fragment_mass_disp'
+                                       'fitness_value'])
+
     FCMparameters = FCMparameters_generater(parameters, ablation_coeff=1e-8,
-                                          cloud_disp_coeff=2/3.5,
-                                          strengh_scaling_disp=0,
-                                          fragment_mass_disp=0,
-                                          RA_ablation=True)
+                                            cloud_disp_coeff=2/3.5,
+                                            strengh_scaling_disp=0,
+                                            fragment_mass_disp=0,
+                                            RA_ablation=True)
 
     # simulate
     # create the structural groups
@@ -440,7 +421,7 @@ if __name__ == "__main__":
                                        test['density'], test['radius'],
                                        test['strength'], test['cloud_mass_frac'],
                                        groups_list)
-    
+
     param = parameters.loc[0]
     atmosphere = atm.US_standard_atmosphere()
     params = fcm.FCMparameters(9.81, 6371, atmosphere, ablation_coeff=2.72e-8,
@@ -450,5 +431,5 @@ if __name__ == "__main__":
     # simulate
     simudata = fcm.simulate_impact(params, meteroid_params, 100,
                                    craters=False, dedz=True, final_states=True)
-    
+
     plot_simulation(simudata.energy_deposition)

@@ -8,7 +8,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import choromosome as chsome
+import chromosome as ch
 from sklearn.metrics import mean_squared_error
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -54,7 +54,7 @@ def dEdz_fitness(event_pool):
 
     Parameters
     ----------
-    event_pool : [type]
+    event_pool : [dataframe]
         [description]
 
     Returns
@@ -62,24 +62,18 @@ def dEdz_fitness(event_pool):
     [type]
         [description]
     """
-    event_count = len(event_pool)
-    fitness_index = 3
     error_sum = 0
     fitness_sum = 0
 
-    for i in range(event_count):
-        error_sum += event_pool[i][fitness_index]
+    # the summation of fitness error
+    error_sum = event_pool['fitness_value'].sum()
 
-    for i in range(event_count):
-        event_pool[i][fitness_index] /= error_sum
-        event_pool[i][fitness_index] = 1 - event_pool[i][fitness_index]
+    # get propotion of fitness value in summation
+    event_pool['fitness_value'] = event_pool.apply(lambda x: 1 - (x['fitness_value'] / error_sum), axis=1)
 
     # get the summation of fitness
-    for i in range(event_count):
-        fitness_sum += event_pool[i][fitness_index]
-
-    for i in range(event_count):
-        event_pool[i][fitness_index] /= fitness_sum
+    fitness_sum = event_pool['fitness_value'].sum()
+    event_pool['fitness_value'] = event_pool.apply(lambda x: x['fitness_value'] / fitness_sum, axis=1)
 
     return event_pool
 
@@ -106,29 +100,86 @@ def dEdz_error(observation, dEdz):
     paired_data = observation.merge(dEdz, left_on='altitude [km]', right_on = 'altitude')
 
     # get the fitness value by RSME
-    fitness = mean_squared_error(paired_data['dEdz [kt TNT / km]'].to_numpy(),
-                                 paired_data['dEdz'].to_numpy())
+    error = mean_squared_error(paired_data['dEdz [kt TNT / km]'].to_numpy(),
+                               paired_data['dEdz'].to_numpy())
 
-    return fitness
+    return error
 
 
 if __name__ == "__main__":
-    group_count = 16
+    # define the numbers of structural groups
+    group_count = 2
+    # the count of events
+    event_count = 2
+
+    # create a dataframe to store structural_groups
+    groups_frame = pd.DataFrame(columns=['mass_fraction', 'density',
+                                   'strength', 'pieces',
+                                   'cloud_mass_frac', 'strength_scaler',
+                                   'fragment_mass_fractions'])
+    
+    # create a dataframe to store FCMmeteoroids
+    meteoroids_frame = pd.DataFrame(columns=['velocity', 'angle',
+                                       'density', 'radius',
+                                       'strength', 'cloud_mass_frac'])
+    # create a dataframe to store paramters
+    param_frame = pd.DataFrame(columns=['ablation_coeff', 'cloud_disp_coeff',
+                                       'strengh_scaling_disp', 'fragment_mass_disp',
+                                       'fitness_value'])
+
+    # ############# define the characteristics ################
+    # atmosphere
     atmosphere = atm.US_standard_atmosphere()
-    observation = read_event(Event.tagish_lake)
 
-    structural_groups = chsome.create_structural_group(3.44e3, 3760, group_count)
-    chsome.print_structural_groups(structural_groups, group_count)
-    meteoroid = chsome.create_FCMmeteoroid(21.3, 81, 3.44e3, 1.14/2, 3760, 0,
-                                           structural_groups)
-    parameters = chsome.create_FCMparameters(atmosphere, precision=1e-4,
-                                             ablation_coeff=2.72e-8,
-                                             cloud_disp_coeff=1,
-                                             strengh_scaling_disp=0,
-                                             fragment_mass_disp=0)
+    # log uniform distribution
+    density = ch.RA_logdis_float(1500, 5000)
+    strength = ch.RA_logdis_float(1, 10000)
 
-    simudata = fcm.simulate_impact(parameters, meteoroid, 100,
-                                   craters=False, dedz=True, final_states=True)
+    # uniform distribution
+    cloud_frac = ch.RA_uniform_float(1.0, 1, 0.1, 0.9)[0]
 
-    fitness_value = dEdz_error(observation, simudata.energy_deposition)
-    print(fitness_value)
+    # genarate structural groups
+    structural_group_count = 2
+
+    ##### TODO :the radius temporarily set to 2.5 ########
+    radius = 1
+
+    ########## the observed tets ##########
+    observation = read_event(Event.benesov)
+
+    # generate the events
+    for i in range(event_count):
+        # generate structural groups
+        ch.groups_generater(groups_frame, density, strength, group_count,
+                            cloud_frac)
+        ch.meteroid_generater(meteoroids_frame, 21.3, 81, density, radius,
+                              strength, cloud_frac, ra_radius=True)
+        ch.FCMparameters_generater(param_frame, ablation_coeff=1e-8,
+                                   cloud_disp_coeff=2/3.5,
+                                   strengh_scaling_disp=0,
+                                   fragment_mass_disp=0,
+                                   RA_ablation=True)
+        
+        # simulate this event
+        # get the groups list
+        groups_list = ch.compact_groups(groups_frame, i, event_count, group_count)
+
+        # meteoroid
+        me = meteoroids_frame.loc[i]
+        meteroid_params = fcm.FCMmeteoroid(me['velocity'], me['angle'],
+                                           me['density'], me['radius'],
+                                           me['strength'], me['cloud_mass_frac'],
+                                           groups_list)
+        # parameters
+        param = param_frame.loc[i]
+        params = fcm.FCMparameters(9.81, 6371, atmosphere, ablation_coeff=2.72e-8,
+                                   cloud_disp_coeff=1, strengh_scaling_disp=0,
+                                   fragment_mass_disp=0, precision=1e-2)
+        # simulate
+        simudata = fcm.simulate_impact(params, meteroid_params, 100,
+                                       craters=False, dedz=True, final_states=True)
+        
+        # get the fitness_value
+        param['fitness_value'] = dEdz_error(observation, simudata.energy_deposition)
+
+    dEdz_fitness(param_frame)
