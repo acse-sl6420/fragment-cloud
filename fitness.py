@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import chromosome as ch
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 BASE_PATH = os.path.abspath(os.path.join(THIS_DIR, ".."))
@@ -98,10 +98,14 @@ def dEdz_error(observation, dEdz):
     dEdz['altitude'] = dEdz.index
     dEdz = dEdz.reset_index(drop=True)
     paired_data = observation.merge(dEdz, left_on='altitude [km]', right_on = 'altitude')
+    print(paired_data)
 
     # get the fitness value by RSME
-    error = mean_squared_error(paired_data['dEdz [kt TNT / km]'].to_numpy(),
-                               paired_data['dEdz'].to_numpy())
+    # error = mean_squared_error(paired_data['dEdz [kt TNT / km]'].to_numpy(),
+    #                            paired_data['dEdz'].to_numpy())
+    error = mean_absolute_error(paired_data['dEdz [kt TNT / km]'].to_numpy(),
+                                paired_data['dEdz'].to_numpy())
+                               
 
     return error
 
@@ -141,10 +145,10 @@ if __name__ == "__main__":
     # genarate structural groups
     structural_group_count = 2
 
-    ##### TODO :the radius temporarily set to 2.5 ########
+    # #### TODO :the radius temporarily set to 2.5 ########
     radius = 1
 
-    ########## the observed tets ##########
+    # ######### the observed tets #########
     observation = read_event(Event.benesov)
 
     # generate the events
@@ -178,8 +182,9 @@ if __name__ == "__main__":
         # simulate
         simudata = fcm.simulate_impact(params, meteroid_params, 100,
                                        craters=False, dedz=True, final_states=True)
-        
+
         # get the fitness_value
         param['fitness_value'] = dEdz_error(observation, simudata.energy_deposition)
 
     dEdz_fitness(param_frame)
+    

@@ -152,7 +152,7 @@ def random_fraction(count, summation, is_even=False):
     return result
 
 
-def RA_int(count, amplifier=1, lower_bound=2, high_bound=16):
+def RA_int(count, amplifier=1, lower_bound=2, high_bound=10):
     """[Randomly generate int numbers]
 
     Parameters
@@ -226,7 +226,7 @@ def groups_generater(groups, density, strength, group_count, cloud_frac):
     temp[:, 2] = strength
 
     # firstly generate just one pieces
-    temp[:, 3] = RA_int(count=group_count)[0]
+    temp[:, 3] = RA_int(count=1)[0]
 
     # assumes that there is just one group, thus this parameter
     # is same as the cloud fraction in FCMmeteoroid
@@ -331,10 +331,10 @@ def plot_simulation(dEdz):
 
     return fig
 
-def compact_groups(groups_dataframe, event_index, event_count, group_count):
+def compact_groups(groups_dataframe, event_index, group_count):
     groups_list = []
     for i in range(group_count):
-        temp = groups_dataframe.loc[i + event_index * event_count]
+        temp = groups_dataframe.loc[i + event_index * group_count]
         groups_list.append(fcm.StructuralGroup(mass_fraction=temp['mass_fraction'], 
                            density=temp['density'],
                            strength=temp['strength'],
@@ -360,12 +360,6 @@ if __name__ == "__main__":
                                    'strength', 'pieces',
                                    'cloud_mass_frac', 'strength_scaler',
                                    'fragment_mass_fractions'])
-    
-    # get the mean and std of parameters
-    mean_std = fcm_param_loader(bulk_density_range, strength_range,
-                                diameter_range, cloud_frac_range,
-                                number_of_frac_range,
-                                strengh_scale_range)
 
     # ############## generate structural groups ####################
     # log uniform distribution
