@@ -10,6 +10,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import chromosome as ch
 from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+import tools as t
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 BASE_PATH = os.path.abspath(os.path.join(THIS_DIR, ".."))
@@ -79,6 +82,30 @@ def dEdz_fitness(event_pool):
 
 
 def dEdz_error(observation, dEdz):
+    """[get the difference betwee observation and dEdz]
+
+    Parameters
+    ----------
+    observation : [type]
+        [description]
+    dEdz : [type]
+        [description]
+    """
+    # make observation round to 2 decimal places
+    # observation = observation.round({'altitude [km]': 2})
+    dEdz = pd.DataFrame(data=dEdz, columns={'dEdz'})
+    dEdz['altitude'] = dEdz.index
+    dEdz = dEdz.reset_index(drop=True)
+
+    # merge the observation and dEdz at the same altitude
+    paired_data = observation.merge(dEdz, left_on='altitude [km]', right_on = 'altitude')
+    error = mean_absolute_error(paired_data['dEdz [kt TNT / km]'].to_numpy(),
+                                paired_data['dEdz'].to_numpy())
+    
+    return error
+    
+
+def dEdz_error_poly(reg, poly, observation, dEdz):
     """[get the fitness value]
 
     Parameters
@@ -89,32 +116,36 @@ def dEdz_error(observation, dEdz):
         [description]
 
     Returns
-    -------
+        -------
     [type]
         [description]
     """
+    mask = np.logical_and(dEdz.index.to_numpy() >= observation.index.min(),
+                          dEdz.index.to_numpy() <= observation.index.max())
 
     dEdz = pd.DataFrame(data=dEdz, columns={'dEdz'})
-    dEdz['altitude'] = dEdz.index
-    dEdz = dEdz.reset_index(drop=True)
-    paired_data = observation.merge(dEdz, left_on='altitude [km]', right_on = 'altitude')
-    print(paired_data)
 
-    # get the fitness value by RSME
-    # error = mean_squared_error(paired_data['dEdz [kt TNT / km]'].to_numpy(),
-    #                            paired_data['dEdz'].to_numpy())
-    error = mean_absolute_error(paired_data['dEdz [kt TNT / km]'].to_numpy(),
-                                paired_data['dEdz'].to_numpy())
-                               
+    X = dEdz.index.to_numpy()[mask].reshape(-1, 1)
+
+    # transform X to 2 degree polynomial
+    X2 = poly.transform(X)
+
+    # get the prediction Y
+    Y = reg.predict(X2)
+    
+    # get the absolute_error
+    # error = mean_absolute_error(Y, dEdz.to_numpy()[mask].flatten())
+    error = sum(Y, dEdz.to_numpy()[mask].flatten())
 
     return error
 
 
+
 if __name__ == "__main__":
-    # define the numbers of structural groups
+    #define the numbers of structural groups
     group_count = 2
     # the count of events
-    event_count = 2
+    event_count = 1
 
     # create a dataframe to store structural_groups
     groups_frame = pd.DataFrame(columns=['mass_fraction', 'density',
@@ -148,8 +179,10 @@ if __name__ == "__main__":
     # #### TODO :the radius temporarily set to 2.5 ########
     radius = 1
 
-    # ######### the observed tets #########
+    # # ######### the observed tets #########
     observation = read_event(Event.benesov)
+    # get total energy deposition in J
+    total_energy = t._total_energy(observation)
 
     # generate the events
     for i in range(event_count):
@@ -157,7 +190,8 @@ if __name__ == "__main__":
         ch.groups_generater(groups_frame, density, strength, group_count,
                             cloud_frac)
         ch.meteroid_generater(meteoroids_frame, 21.3, 81, density, radius,
-                              strength, cloud_frac, ra_radius=True)
+                              strength, cloud_frac, total_energy, ra_radius=True,
+                              ra_angle=True, ra_velocity=True)
         ch.FCMparameters_generater(param_frame, ablation_coeff=1e-8,
                                    cloud_disp_coeff=2/3.5,
                                    strengh_scaling_disp=0,
@@ -166,7 +200,7 @@ if __name__ == "__main__":
         
         # simulate this event
         # get the groups list
-        groups_list = ch.compact_groups(groups_frame, i, event_count, group_count)
+        groups_list = ch.compact_groups(groups_frame, i, group_count)
 
         # meteoroid
         me = meteoroids_frame.loc[i]
@@ -187,4 +221,7 @@ if __name__ == "__main__":
         param['fitness_value'] = dEdz_error(observation, simudata.energy_deposition)
 
     dEdz_fitness(param_frame)
+    
+    
+    
     

@@ -7,7 +7,7 @@ import random
 from enum import Enum
 import fcm.atmosphere as atm
 import matplotlib.pyplot as plt
-
+import tools as t
 
 class fcm_param_loader:
     def __init__(self, bulk_density_range, strength_range,
@@ -250,30 +250,34 @@ def groups_generater(groups, density, strength, group_count, cloud_frac):
         groups.loc[index, 'fragment_mass_fractions'] = fragment_mass_fractions[i]
 
 
+
+
 def meteroid_generater(meteroids, velocity, angle, density,
-                       radius, strength, cloud_mass_frac, ra_velocity=False,
+                       strength, cloud_mass_frac, total_energy,
+                       ra_velocity=False,
                        ra_angle=False, ra_density=False, ra_radius=False,
                        ra_strength=False, ra_cloud_mass_frac=False,
                        ):
     count = 1
-
-    parameters = [velocity, angle, density, radius, strength, cloud_mass_frac]
-
+    
     # randomly generated velocity
     if ra_velocity:
         velocity = RA_uniform_float(velocity, count, 0.9, 1.1)[0]
     if ra_angle:
         angle = RA_uniform_float(angle, count, 0.9, 1.1)[0]
     if ra_density:
-        density = RA_uniform_float(density, count, 0.9, 1.1)[0]
-    # random
-    if ra_radius:
-        radius = RA_uniform_float(radius, count, 0.9, 1.1)[0]
+        density = RA_uniform_float(density, count, 0.9, 1.1)[0]   
     if ra_strength:
         strength = RA_uniform_float(strength, count, 0.9, 1.1)[0]
     if ra_cloud_mass_frac:
         cloud_mass_frac = RA_uniform_float(cloud_mass_frac, count, 0.9, 1.1)[0]
 
+    # calculate radius
+    radius = t._radius(total_energy, density, velocity)
+    if ra_radius:
+        radius = RA_uniform_float(radius, count, 0.9, 1.1)[0]
+    
+    parameters = [velocity, angle, density, radius, strength, cloud_mass_frac]
     meteroids.loc[len(meteroids)] = parameters
 
 # ####### TODO: FCMmeteoroid #############

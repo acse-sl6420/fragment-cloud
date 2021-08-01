@@ -8,10 +8,33 @@ from scipy.sparse.construct import rand
 import chromosome as ch
 import fitness as fit
 import pandas as pd
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+import tools as t
 
 # get the atmosphere of earth
 atmosphere = atm.US_standard_atmosphere()
 
+def linear_regression(observation):
+    """[summary]
+
+    Parameters
+    ----------
+    observation : [type]
+        [description]
+    """
+    X = observation['altitude [km]'].values.reshape(-1, 1)
+    y = observation['dEdz [kt TNT / km]'].values
+
+    # second degree polynomial
+    poly = PolynomialFeatures(degree=5)
+    poly.fit(X)
+    X2 = poly.transform(X)
+    reg = LinearRegression().fit(X2, y)
+    y_pre = reg.predict(X2)
+
+    return reg, poly
 
 def mate_pool_generater(group_count, event_count):
     """[generate the pool of chromosomes to mate]
@@ -48,19 +71,21 @@ def mate_pool_generater(group_count, event_count):
     # uniform distribution
     cloud_frac = ch.RA_uniform_float(1.0, 1, 0.1, 0.9)[0]
 
-    # #### TODO :the radius temporarily set to 1 ########
-    radius = 1.14/2
-
     # ######### the observed tets #########
     observation = fit.read_event(fit.Event.benesov)
-
+    # make observation round to 2 decimal places
+    observation = observation.round({'altitude [km]': 2})
+    
+    total_energy = t._total_energy(observation)
     # generate the events
     for i in range(event_count):
         # generate structural groups
         ch.groups_generater(groups_frame, density, strength, group_count,
                             cloud_frac)
-        ch.meteroid_generater(meteoroids_frame, 21.3, 81, density, radius,
-                              strength, cloud_frac, ra_radius=True)
+        ch.meteroid_generater(meteoroids_frame, 21.3, 81, density,
+                              strength, cloud_frac, total_energy=total_energy,
+                              ra_radius=True, ra_velocity=True,
+                              ra_angle=True)
         ch.FCMparameters_generater(param_frame, ablation_coeff=2.72e-8,
                                    cloud_disp_coeff=1,
                                    strengh_scaling_disp=0,
@@ -81,14 +106,14 @@ def mate_pool_generater(group_count, event_count):
         param = param_frame.loc[i]
         params = fcm.FCMparameters(9.81, 6371, atmosphere,
                                    ablation_coeff=param['ablation_coeff'],
-                                   cloud_disp_coeff=1,
+                                   cloud_disp_coeff=1, dh=100,
                                    strengh_scaling_disp=0,
                                    lift_coeff=0, drag_coeff=1,
                                    fragment_mass_disp=0, precision=1e-2)
         # simulate
         simudata = fcm.simulate_impact(params, meteroid_params, 100,
                                        craters=False, dedz=True, final_states=True)
-
+        
         # get the mean square error of dEdz
         param['fitness_value'] = fit.dEdz_error(observation, simudata.energy_deposition)
 
@@ -118,16 +143,15 @@ def selection(parent_count, pool):
     for i in range(pool_count):
         temp += pool[i][3]
         roulette[i] = temp
-    
+
     target_count = 0
     while (target_count < parent_count):
         for i in range(pool_count):
             random_prab = random.uniform(0.0, 1)
-            
+
     return parent_list
 
-
 if __name__ == "__main__":
-    group_dataframe, meteoroids_frame, param_frame = mate_pool_generater(2, 1)
+    group_dataframe, meteoroids_frame, param_frame = mate_pool_generater(group_count=1, event_count=100)
 
     print(param_frame)
