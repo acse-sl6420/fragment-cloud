@@ -9,10 +9,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import chromosome as ch
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
 import tools as t
+from sklearn.metrics import mean_absolute_error
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 BASE_PATH = os.path.abspath(os.path.join(THIS_DIR, ".."))
@@ -187,8 +185,7 @@ if __name__ == "__main__":
     # generate the events
     for i in range(event_count):
         # generate structural groups
-        ch.groups_generater(groups_frame, density, strength, group_count,
-                            cloud_frac)
+        ch.groups_generater(groups_frame, density, strength, group_count)
         ch.meteroid_generater(meteoroids_frame, 21.3, 81, density, radius,
                               strength, cloud_frac, total_energy, ra_radius=True,
                               ra_angle=True, ra_velocity=True)
@@ -221,7 +218,3 @@ if __name__ == "__main__":
         param['fitness_value'] = dEdz_error(observation, simudata.energy_deposition)
 
     dEdz_fitness(param_frame)
-    
-    
-    
-    

@@ -196,7 +196,7 @@ def even_fragment(count):
     return result
 
 
-def groups_generater(groups, density, strength, group_count, cloud_frac):
+def groups_generater(groups, density, strength, group_count):
     """[Generate the structural groups]
 
     Parameters
@@ -225,14 +225,11 @@ def groups_generater(groups, density, strength, group_count, cloud_frac):
     # log distribution
     temp[:, 2] = strength
 
-    # firstly generate just one pieces
+    # pieces
     temp[:, 3] = RA_int(count=1)[0]
 
-    # assumes that there is just one group, thus this parameter
-    # is same as the cloud fraction in FCMmeteoroid
-    # here I will keep the random generating interface
     # temp[:, 4] = RA_uniform_float(1.0, 1, 0.1, 0.9)[0]
-    temp[:, 4] = [cloud_frac for i in range(group_count)]
+    temp[:, 4] = [RA_uniform_float(1.0, 1, 0.1, 0.9)[0] for i in range(group_count)]
 
     temp[:, 5] = RA_uniform_float(1, group_count, 0.1, 1)
 
@@ -250,8 +247,6 @@ def groups_generater(groups, density, strength, group_count, cloud_frac):
         groups.loc[index, 'fragment_mass_fractions'] = fragment_mass_fractions[i]
 
 
-
-
 def meteroid_generater(meteroids, velocity, angle, density,
                        strength, cloud_mass_frac, total_energy,
                        ra_velocity=False,
@@ -259,7 +254,7 @@ def meteroid_generater(meteroids, velocity, angle, density,
                        ra_strength=False, ra_cloud_mass_frac=False,
                        ):
     count = 1
-    
+
     # randomly generated velocity
     if ra_velocity:
         velocity = RA_uniform_float(velocity, count, 0.9, 1.1)[0]
@@ -275,12 +270,12 @@ def meteroid_generater(meteroids, velocity, angle, density,
     # calculate radius
     radius = t._radius(total_energy, density, velocity)
     if ra_radius:
-        radius = RA_uniform_float(radius, count, 0.9, 1.1)[0]
+        radius = RA_uniform_float(radius, count, 0.7, 1.5)[0]
     
     parameters = [velocity, angle, density, radius, strength, cloud_mass_frac]
     meteroids.loc[len(meteroids)] = parameters
 
-# ####### TODO: FCMmeteoroid #############
+
 def FCMparameters_generater(parameters, cloud_disp_coeff,
                             strengh_scaling_disp, fragment_mass_disp,
                             ablation_coeff, RA_ablation=False,
@@ -302,7 +297,8 @@ def FCMparameters_generater(parameters, cloud_disp_coeff,
     """
     count = 1
     if RA_ablation:
-        ablation_coeff = RA_uniform_float(ablation_coeff, count, 0.9, 1.1)[0]
+        ablation_coeff = RA_uniform_float(1.0, count, 1e-9, 9e-8,
+                                          round='.9f')[0]
     if RA_cloud_disp_coeff:
         cloud_disp_coeff = RA_uniform_float(cloud_disp_coeff,
                                             count, 0.9, 1.1)[0]
@@ -352,82 +348,96 @@ def compact_groups(groups_dataframe, event_index, group_count):
 if __name__ == "__main__":
     # define the range of some parameters which maybe
     # log distribution
-    bulk_density_range = np.arange(1.5, 5, 0.1)
-    strength_range = np.arange(1, 10000, 1)
-    diameter_range = np.arange(0.1, 100, 0.1)
-    cloud_frac_range = np.arange(0.1, 0.9, 0.1)
-    number_of_frac_range = np.arange(2, 16, 1)
-    strengh_scale_range = np.arange(0.1, 0.9, 0.1)
+    # bulk_density_range = np.arange(1.5, 5, 0.1)
+    # strength_range = np.arange(1, 10000, 1)
+    # diameter_range = np.arange(0.1, 100, 0.1)
+    # cloud_frac_range = np.arange(0.1, 0.9, 0.1)
+    # number_of_frac_range = np.arange(2, 16, 1)
+    # strengh_scale_range = np.arange(0.1, 0.9, 0.1)
 
-    # create dataframe to store structural groups
-    groups = pd.DataFrame(columns=['mass_fraction', 'density',
-                                   'strength', 'pieces',
-                                   'cloud_mass_frac', 'strength_scaler',
-                                   'fragment_mass_fractions'])
+    # # create dataframe to store structural groups
+    # groups = pd.DataFrame(columns=['mass_fraction', 'density',
+    #                                'strength', 'pieces',
+    #                                'cloud_mass_frac', 'strength_scaler',
+    #                                'fragment_mass_fractions'])
 
-    # ############## generate structural groups ####################
-    # log uniform distribution
-    density = RA_logdis_float(1500, 5000)
+    # # ############## generate structural groups ####################
+    # # log uniform distribution
+    # density = RA_logdis_float(1500, 5000)
 
-    # log uniform distribution
-    strength = RA_logdis_float(1, 10000)
-    cloud_frac = RA_uniform_float(1.0, 1, 0.1, 0.9)[0]
+    # # log uniform distribution
+    # strength = RA_logdis_float(1, 10000)
+    # cloud_frac = RA_uniform_float(1.0, 1, 0.1, 0.9)[0]
 
-    # genarate structural groups
-    structural_group_count = 2
-    groups_generater(groups, density, strength, structural_group_count,
-                     cloud_frac)
+    # # genarate structural groups
+    # structural_group_count = 2
+    # groups_generater(groups, density, strength, structural_group_count,
+    #                  cloud_frac)
 
-    # ################### generate meteroid ########################
-    # radius is log distribution
-    meteoroids = pd.DataFrame(columns=['velocity', 'angle',
-                                       'density', 'radius',
-                                       'strength', 'cloud_mass_frac'])
+    # # ################### generate meteroid ########################
+    # # radius is log distribution
+    # meteoroids = pd.DataFrame(columns=['velocity', 'angle',
+    #                                    'density', 'radius',
+    #                                    'strength', 'cloud_mass_frac'])
 
-    radius = 2.5
+    # radius = 2.5
 
-    # the cloud_frac is same as structural groups
-    meteroid_generater(meteoroids, 21.3, 81, density, radius,
-                       strength, cloud_frac, ra_radius=True)
+    # # the cloud_frac is same as structural groups
+    # meteroid_generater(meteoroids, 21.3, 81, density, radius,
+    #                    strength, cloud_frac, ra_radius=True)
 
-    # ################### FCMparameters ###########
-    parameters = pd.DataFrame(columns=['ablation_coeff', 'cloud_disp_coeff',
-                                       'strengh_scaling_disp', 'fragment_mass_disp'
-                                       'fitness_value'])
+    # # ################### FCMparameters ###########
+    # parameters = pd.DataFrame(columns=['ablation_coeff', 'cloud_disp_coeff',
+    #                                    'strengh_scaling_disp', 'fragment_mass_disp'
+    #                                    'fitness_value'])
 
-    FCMparameters = FCMparameters_generater(parameters, ablation_coeff=1e-8,
+    # FCMparameters = FCMparameters_generater(parameters, ablation_coeff=1e-8,
+    #                                         cloud_disp_coeff=2/3.5,
+    #                                         strengh_scaling_disp=0,
+    #                                         fragment_mass_disp=0,
+    #                                         RA_ablation=True)
+
+    # # simulate
+    # # create the structural groups
+    # groups_list = []
+    # for i in range(structural_group_count):
+    #     temp = groups.loc[i]
+    #     groups_list.append(fcm.StructuralGroup(mass_fraction=temp['mass_fraction'], 
+    #                                     density=temp['density'],
+    #                                     strength=temp['strength'],
+    #                                     pieces=int(temp['pieces']),
+    #                                     cloud_mass_frac=temp['cloud_mass_frac'],
+    #                                     strength_scaler=temp['strength_scaler'],
+    #                                     fragment_mass_fractions=temp['fragment_mass_fractions']))
+    
+    # test = meteoroids.loc[0]
+    # meteroid_params = fcm.FCMmeteoroid(test['velocity'], test['angle'],
+    #                                    test['density'], test['radius'],
+    #                                    test['strength'], test['cloud_mass_frac'],
+    #                                    groups_list)
+
+    # param = parameters.loc[0]
+    # atmosphere = atm.US_standard_atmosphere()
+    # params = fcm.FCMparameters(9.81, 6371, atmosphere, ablation_coeff=2.72e-8,
+    #                            cloud_disp_coeff=1, strengh_scaling_disp=0,
+    #                            fragment_mass_disp=0, precision=1e-2)
+
+    # # simulate
+    # simudata = fcm.simulate_impact(params, meteroid_params, 100,
+    #                                craters=False, dedz=True, final_states=True)
+
+    # plot_simulation(simudata.energy_deposition)
+
+
+    # create a dataframe to store paramters
+    param_frame = pd.DataFrame(columns=['ablation_coeff', 'cloud_disp_coeff',
+                                        'strengh_scaling_disp',
+                                        'fragment_mass_disp',
+                                        'fitness_value'])
+
+    FCMparameters = FCMparameters_generater(param_frame, ablation_coeff=1e-8,
                                             cloud_disp_coeff=2/3.5,
                                             strengh_scaling_disp=0,
                                             fragment_mass_disp=0,
                                             RA_ablation=True)
-
-    # simulate
-    # create the structural groups
-    groups_list = []
-    for i in range(structural_group_count):
-        temp = groups.loc[i]
-        groups_list.append(fcm.StructuralGroup(mass_fraction=temp['mass_fraction'], 
-                                        density=temp['density'],
-                                        strength=temp['strength'],
-                                        pieces=int(temp['pieces']),
-                                        cloud_mass_frac=temp['cloud_mass_frac'],
-                                        strength_scaler=temp['strength_scaler'],
-                                        fragment_mass_fractions=temp['fragment_mass_fractions']))
-    
-    test = meteoroids.loc[0]
-    meteroid_params = fcm.FCMmeteoroid(test['velocity'], test['angle'],
-                                       test['density'], test['radius'],
-                                       test['strength'], test['cloud_mass_frac'],
-                                       groups_list)
-
-    param = parameters.loc[0]
-    atmosphere = atm.US_standard_atmosphere()
-    params = fcm.FCMparameters(9.81, 6371, atmosphere, ablation_coeff=2.72e-8,
-                               cloud_disp_coeff=1, strengh_scaling_disp=0,
-                               fragment_mass_disp=0, precision=1e-2)
-
-    # simulate
-    simudata = fcm.simulate_impact(params, meteroid_params, 100,
-                                   craters=False, dedz=True, final_states=True)
-
-    plot_simulation(simudata.energy_deposition)
+    print(FCMparameters)
