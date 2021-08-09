@@ -6,6 +6,7 @@ import fcm
 import fcm.atmosphere as atm
 from enum import Enum
 import numpy as np
+from numpy import ma
 import pandas as pd
 import matplotlib.pyplot as plt
 import chromosome as ch
@@ -99,7 +100,9 @@ def dEdz_error(observation, dEdz):
     paired_data = observation.merge(dEdz, left_on='altitude [km]', right_on = 'altitude')
     error = mean_absolute_error(paired_data['dEdz [kt TNT / km]'].to_numpy(),
                                 paired_data['dEdz'].to_numpy())
+    max_error = (abs(paired_data['dEdz [kt TNT / km]'].to_numpy() - paired_data['dEdz'].to_numpy())).max()
     
+    error = 10 * error + max_error
     return error
     
 
