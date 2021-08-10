@@ -25,13 +25,15 @@ class Event():
     kosice = 1
     benesov = 2
     tagish_lake = 3
+    lost_city = 4
 
 
 # the csv file name
 file_names = {Event.chelyabinsk: "ChelyabinskEnergyDep_Wheeler-et-al-2018.txt",
               Event.kosice: "KosiceEnergyDep_Wheeler-et-al-2018.txt",
               Event.benesov: "BenesovEnergyDep_Wheeler-et-al-2018.txt",
-              Event.tagish_lake: "TagishLakeEnergyDep_Wheeler-et-al-2018.txt"}
+              Event.tagish_lake: "TagishLakeEnergyDep_Wheeler-et-al-2018.txt",
+              Event.lost_city: "lost_city.csv"}
 
 
 def read_event(event):
@@ -50,6 +52,7 @@ def read_event(event):
     data = data.reset_index(drop=True)
     
     return data
+
 
 def dEdz_fitness(event_pool):
     """[transport error to fitness]
@@ -91,7 +94,7 @@ def dEdz_error(observation, dEdz):
         [description]
     """
     # make observation round to 2 decimal places
-    # observation = observation.round({'altitude [km]': 2})
+    observation = observation.round({'altitude [km]': 2})
     dEdz = pd.DataFrame(data=dEdz, columns={'dEdz'})
     dEdz['altitude'] = dEdz.index
     dEdz = dEdz.reset_index(drop=True)
@@ -141,6 +144,23 @@ def dEdz_error_poly(reg, poly, observation, dEdz):
     return error
 
 
+def read_lost_city(event):
+    """[read the data of event from csv files.]
+
+    Parameters
+    ----------
+    event : [Class Event]
+        [this class includes the observed events.]
+    """
+    data = pd.read_csv(os.path.join(THIS_DIR, "data", file_names[event]),
+                       sep='\t', header=0, index_col=0)
+    
+    data.columns = ["dEdz [kt TNT / km]"]
+    data['altitude [km]'] = data.index
+    data = data.reset_index(drop=True)
+    
+    return data
+
 
 if __name__ == "__main__":
     #define the numbers of structural groups
@@ -189,9 +209,10 @@ if __name__ == "__main__":
     for i in range(event_count):
         # generate structural groups
         ch.groups_generater(groups_frame, density, strength, group_count)
-        ch.meteroid_generater(meteoroids_frame, 21.3, 81, density, radius,
-                              strength, cloud_frac, total_energy, ra_radius=True,
-                              ra_angle=True, ra_velocity=True)
+        ch.meteroid_generater(meteoroids_frame, 21.3, 81, density,
+                              strength, cloud_mass_frac=0,
+                              total_energy=total_energy,
+                              ra_radius=True)
         ch.FCMparameters_generater(param_frame, ablation_coeff=1e-8,
                                    cloud_disp_coeff=2/3.5,
                                    strengh_scaling_disp=0,

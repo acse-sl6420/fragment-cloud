@@ -152,7 +152,7 @@ def random_fraction(count, summation, is_even=False):
     return result
 
 
-def RA_int(count, amplifier=1, lower_bound=2, high_bound=10):
+def RA_int(count, amplifier=1, lower_bound=2, high_bound=16):
     """[Randomly generate int numbers]
 
     Parameters
@@ -226,7 +226,7 @@ def groups_generater(groups, density, strength, group_count):
     temp[:, 2] = strength
 
     # pieces
-    temp[:, 3] = RA_int(count=1)[0]
+    temp[:, 3] = RA_int(count=group_count, high_bound=5)
 
     # temp[:, 4] = RA_uniform_float(1.0, 1, 0.1, 0.9)[0]
     temp[:, 4] = [RA_uniform_float(1.0, 1, 0.1, 0.9)[0] for i in range(group_count)]
@@ -327,7 +327,7 @@ def plot_simulation(dEdz):
     plt.xscale('log')
     plt.legend(loc='best')
     plt.show()
-    # plt.savefig(filename)
+    # plt.savefig("lvshiqi.png")
 
     return fig
 
