@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import chromosome as ch
 import tools as t
 from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 BASE_PATH = os.path.abspath(os.path.join(THIS_DIR, ".."))
@@ -33,7 +34,7 @@ file_names = {Event.chelyabinsk: "ChelyabinskEnergyDep_Wheeler-et-al-2018.txt",
               Event.kosice: "KosiceEnergyDep_Wheeler-et-al-2018.txt",
               Event.benesov: "BenesovEnergyDep_Wheeler-et-al-2018.txt",
               Event.tagish_lake: "TagishLakeEnergyDep_Wheeler-et-al-2018.txt",
-              Event.lost_city: "lost_city.csv"}
+              Event.lost_city: "lost_city.txt"}
 
 
 def read_event(event):
@@ -44,12 +45,20 @@ def read_event(event):
     event : [Class Event]
         [this class includes the observed events.]
     """
-    data = pd.read_csv(os.path.join(THIS_DIR, "data", file_names[event]),
-                       sep='\t', header=0, index_col=0)
+    if event == Event.lost_city:
+        data = pd.read_csv(os.path.join(THIS_DIR, "data", file_names[event]),
+                           sep=',', header=0, index_col=1)
     
-    data.columns = ["dEdz [kt TNT / km]", "min. dEdz [kt TNT / km]", "max. dEdz [kt TNT / km]"]
-    data['altitude [km]'] = data.index
-    data = data.reset_index(drop=True)
+        data.columns = ["dEdz [kt TNT / km]"]
+        data['altitude [km]'] = data.index
+        data = data.reset_index(drop=True)
+    else:
+        data = pd.read_csv(os.path.join(THIS_DIR, "data", file_names[event]),
+                        sep='\t', header=0, index_col=0)
+        
+        data.columns = ["dEdz [kt TNT / km]", "min. dEdz [kt TNT / km]", "max. dEdz [kt TNT / km]"]
+        data['altitude [km]'] = data.index
+        data = data.reset_index(drop=True)
     
     return data
 
@@ -101,7 +110,7 @@ def dEdz_error(observation, dEdz):
 
     # merge the observation and dEdz at the same altitude
     paired_data = observation.merge(dEdz, left_on='altitude [km]', right_on = 'altitude')
-    error = mean_absolute_error(paired_data['dEdz [kt TNT / km]'].to_numpy(),
+    error = mean_squared_error(paired_data['dEdz [kt TNT / km]'].to_numpy(),
                                 paired_data['dEdz'].to_numpy())
     max_error = (abs(paired_data['dEdz [kt TNT / km]'].to_numpy() - paired_data['dEdz'].to_numpy())).max()
     
@@ -144,22 +153,22 @@ def dEdz_error_poly(reg, poly, observation, dEdz):
     return error
 
 
-def read_lost_city(event):
-    """[read the data of event from csv files.]
+# def read_lost_city(event):
+#     """[read the data of event from csv files.]
 
-    Parameters
-    ----------
-    event : [Class Event]
-        [this class includes the observed events.]
-    """
-    data = pd.read_csv(os.path.join(THIS_DIR, "data", file_names[event]),
-                       sep='\t', header=0, index_col=0)
+#     Parameters
+#     ----------
+#     event : [Class Event]
+#         [this class includes the observed events.]
+#     """
+#     data = pd.read_csv(os.path.join(THIS_DIR, "data", file_names[event]),
+#                        sep='\t', header=0, index_col=0)
     
-    data.columns = ["dEdz [kt TNT / km]"]
-    data['altitude [km]'] = data.index
-    data = data.reset_index(drop=True)
+#     data.columns = ["dEdz [kt TNT / km]"]
+#     data['altitude [km]'] = data.index
+#     data = data.reset_index(drop=True)
     
-    return data
+#     return data
 
 
 if __name__ == "__main__":
@@ -201,44 +210,44 @@ if __name__ == "__main__":
     radius = 1
 
     # # ######### the observed tets #########
-    observation = read_event(Event.benesov)
+    observation = read_event(Event.kosice)
     # get total energy deposition in J
-    total_energy = t._total_energy(observation)
+    # total_energy = t._total_energy(observation)
 
-    # generate the events
-    for i in range(event_count):
-        # generate structural groups
-        ch.groups_generater(groups_frame, density, strength, group_count)
-        ch.meteroid_generater(meteoroids_frame, 21.3, 81, density,
-                              strength, cloud_mass_frac=0,
-                              total_energy=total_energy,
-                              ra_radius=True)
-        ch.FCMparameters_generater(param_frame, ablation_coeff=1e-8,
-                                   cloud_disp_coeff=2/3.5,
-                                   strengh_scaling_disp=0,
-                                   fragment_mass_disp=0,
-                                   RA_ablation=True)
+    # # generate the events
+    # for i in range(event_count):
+    #     # generate structural groups
+    #     ch.groups_generater(groups_frame, density, strength, group_count)
+    #     ch.meteroid_generater(meteoroids_frame, 21.3, 81, density,
+    #                           strength, cloud_mass_frac=0,
+    #                           total_energy=total_energy,
+    #                           ra_radius=True)
+    #     ch.FCMparameters_generater(param_frame, ablation_coeff=1e-8,
+    #                                cloud_disp_coeff=2/3.5,
+    #                                strengh_scaling_disp=0,
+    #                                fragment_mass_disp=0,
+    #                                RA_ablation=True)
         
-        # simulate this event
-        # get the groups list
-        groups_list = ch.compact_groups(groups_frame, i, group_count)
+    #     # simulate this event
+    #     # get the groups list
+    #     groups_list = ch.compact_groups(groups_frame, i, group_count)
 
-        # meteoroid
-        me = meteoroids_frame.loc[i]
-        meteroid_params = fcm.FCMmeteoroid(me['velocity'], me['angle'],
-                                           me['density'], me['radius'],
-                                           me['strength'], me['cloud_mass_frac'],
-                                           groups_list)
-        # parameters
-        param = param_frame.loc[i]
-        params = fcm.FCMparameters(9.81, 6371, atmosphere, ablation_coeff=2.72e-8,
-                                   cloud_disp_coeff=1, strengh_scaling_disp=0,
-                                   fragment_mass_disp=0, precision=1e-2)
-        # simulate
-        simudata = fcm.simulate_impact(params, meteroid_params, 100,
-                                       craters=False, dedz=True, final_states=True)
+    #     # meteoroid
+    #     me = meteoroids_frame.loc[i]
+    #     meteroid_params = fcm.FCMmeteoroid(me['velocity'], me['angle'],
+    #                                        me['density'], me['radius'],
+    #                                        me['strength'], me['cloud_mass_frac'],
+    #                                        groups_list)
+    #     # parameters
+    #     param = param_frame.loc[i]
+    #     params = fcm.FCMparameters(9.81, 6371, atmosphere, ablation_coeff=2.72e-8,
+    #                                cloud_disp_coeff=1, strengh_scaling_disp=0,
+    #                                fragment_mass_disp=0, precision=1e-2)
+    #     # simulate
+    #     simudata = fcm.simulate_impact(params, meteroid_params, 100,
+    #                                    craters=False, dedz=True, final_states=True)
 
-        # get the fitness_value
-        param['fitness_value'] = dEdz_error(observation, simudata.energy_deposition)
+    #     # get the fitness_value
+    #     param['fitness_value'] = dEdz_error(observation, simudata.energy_deposition)
 
-    dEdz_fitness(param_frame)
+    # dEdz_fitness(param_frame)

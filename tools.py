@@ -43,10 +43,8 @@ def plot_simulation(dEdz, observation):
     fig, ax = plt.subplots(1, 1, figsize=(10, 7))
     plt.plot(dEdz.to_numpy()[mask], dEdz.index.to_numpy()[mask], label='fcm')
 
-    plt.plot(observation['min. dEdz [kt TNT / km]'].to_numpy(), observation.index.to_numpy(),
-            "--", label='observation (min)')
-    plt.plot(observation['max. dEdz [kt TNT / km]'].to_numpy(), observation.index.to_numpy(),
-            "--", label='observation (max)')
+    plt.plot(observation['dEdz [kt TNT / km]'].to_numpy(), observation.index.to_numpy(),
+            "--", label='observation')
     
     plt.xlabel("dEdz [kt TNT / km]")
     plt.ylabel("altitude [km]")

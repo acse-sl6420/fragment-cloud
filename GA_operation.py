@@ -74,11 +74,11 @@ def mate_pool_generater(group_count, event_count, observation):
 
         # generate structural groups
         ch.groups_generater(groups_frame, density, strength, group_count)
-        ch.meteroid_generater(meteoroids_frame, 15, 60, density,
+        ch.meteroid_generater(meteoroids_frame, 21.5, 81, density,
                               strength, cloud_mass_frac=0,
                               total_energy=total_energy,
                               ra_radius=True)
-        ch.FCMparameters_generater(param_frame, ablation_coeff=10e-8,
+        ch.FCMparameters_generater(param_frame, ablation_coeff=1.5e-8,
                                    cloud_disp_coeff=1,
                                    strengh_scaling_disp=0,
                                    fragment_mass_disp=0,
@@ -432,7 +432,7 @@ def mutation(g_df, m_df, p_df, group_count):
         if temp_prob > mu_prob:
             continue
         else:
-            # just mutate the ablation_coeff
+            # mutate the ablation_coeff
             p_df.at[i, 'ablation_coeff'] = ch.RA_uniform_float(1.0, 1, 1e-9, 9e-8,
                                                                round='.9f')[0]
 
@@ -440,7 +440,7 @@ if __name__ == "__main__":
     group_count = 1
     event_count = 10
     offspring_count = 2
-    observation = fit.read_event(fit.Event.kosice)
+    observation = fit.read_event(fit.Event.benesov)
     group_dataframe, meteoroids_frame, param_frame = mate_pool_generater(group_count, event_count, observation)
     iteration = 1
 
@@ -472,7 +472,6 @@ if __name__ == "__main__":
         # get the accumulate probability
         accumulate_probability(param_frame)
         
-
     # find the highest fitness value
     discrete_fitness(param_frame)
 

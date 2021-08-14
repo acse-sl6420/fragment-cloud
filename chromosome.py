@@ -2,6 +2,7 @@
 from math import radians
 import numpy as np
 import fcm
+from numpy.random import uniform
 import pandas as pd
 import random
 from enum import Enum
@@ -213,25 +214,36 @@ def groups_generater(groups, density, strength, group_count):
     """
 
     param_count = 6
-
     temp = np.zeros((group_count, param_count))
 
     # random generate the numbers
     temp[:, 0] = random_fraction(group_count, 1)
+    if (group_count == 2):
+        temp[0:0] = RA_uniform_float(1.0, 1, 0.1, 0.9, round='.8f')
+        temp[1:0] = 1.0 - temp[0:0]
 
-    # the density could be a random number
+    # density
     temp[:, 1] = density
 
-    # log distribution
-    temp[:, 2] = strength
+    # strength
+    if group_count == 1:
+        temp[:, 2] = strength
+    elif group_count == 2:
+        # This parameters is just suitable for benesov
+        temp[0, 2] = strength
+        temp[1, 2] = RA_logdis_float(strength, 10000)
+    else:
+        temp[:, 2] = [RA_logdis_float(strength, 10000) for i in range(group_count)]
 
     # pieces
-    temp[:, 3] = RA_int(count=group_count, high_bound=5)
+    temp[:, 3] = RA_int(count=group_count, lower_bound=6, high_bound=16)
 
     # temp[:, 4] = RA_uniform_float(1.0, 1, 0.1, 0.9)[0]
+    # cloud mass fraction
     temp[:, 4] = [RA_uniform_float(1.0, 1, 0.1, 0.9)[0] for i in range(group_count)]
 
-    temp[:, 5] = RA_uniform_float(1, group_count, 0.1, 1)
+    # strength scaler
+    temp[:, 5] = RA_uniform_float(1.0, group_count, 0.6, 1.0, round=".8f")[0]
 
     fragment_mass_fractions = [even_fragment(int(temp[i][3]))
                                for i in range(group_count)]
@@ -270,8 +282,9 @@ def meteroid_generater(meteroids, velocity, angle, density,
     # calculate radius
     radius = t._radius(total_energy, density, velocity)
     if ra_radius:
-        radius = RA_uniform_float(radius, count, 0.7, 1.5)[0]
-    
+        total_energy = RA_uniform_float(total_energy, count, 0.7, 1.1)[0]
+        radius = t._radius(total_energy, density, velocity)
+
     parameters = [velocity, angle, density, radius, strength, cloud_mass_frac]
     meteroids.loc[len(meteroids)] = parameters
 
