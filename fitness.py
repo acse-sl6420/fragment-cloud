@@ -83,7 +83,8 @@ def dEdz_fitness(event_pool):
     error_sum = event_pool['fitness_value'].sum()
 
     # get propotion of fitness value in summation
-    event_pool['fitness_value'] = event_pool.apply(lambda x: 1 - (x['fitness_value'] / error_sum), axis=1)
+    # event_pool['fitness_value'] = event_pool.apply(lambda x: 1 - (x['fitness_value'] / error_sum), axis=1)
+    event_pool['fitness_value'] = event_pool.apply(lambda x: 1 / x['fitness_value'], axis=1)
 
     # get the summation of fitness
     fitness_sum = event_pool['fitness_value'].sum()
@@ -113,8 +114,8 @@ def dEdz_error(observation, dEdz):
     error = mean_squared_error(paired_data['dEdz [kt TNT / km]'].to_numpy(),
                                 paired_data['dEdz'].to_numpy())
     max_error = (abs(paired_data['dEdz [kt TNT / km]'].to_numpy() - paired_data['dEdz'].to_numpy())).max()
-    
-    error = 10 * error + max_error
+
+    error = 100 * error + max_error
     return error
     
 
@@ -153,24 +154,6 @@ def dEdz_error_poly(reg, poly, observation, dEdz):
     return error
 
 
-# def read_lost_city(event):
-#     """[read the data of event from csv files.]
-
-#     Parameters
-#     ----------
-#     event : [Class Event]
-#         [this class includes the observed events.]
-#     """
-#     data = pd.read_csv(os.path.join(THIS_DIR, "data", file_names[event]),
-#                        sep='\t', header=0, index_col=0)
-    
-#     data.columns = ["dEdz [kt TNT / km]"]
-#     data['altitude [km]'] = data.index
-#     data = data.reset_index(drop=True)
-    
-#     return data
-
-
 if __name__ == "__main__":
     #define the numbers of structural groups
     group_count = 2
@@ -179,8 +162,8 @@ if __name__ == "__main__":
 
     # create a dataframe to store structural_groups
     groups_frame = pd.DataFrame(columns=['mass_fraction', 'density',
-                                   'strength', 'pieces',
-                                   'cloud_mass_frac', 'strength_scaler',
+                                         'strength', 'pieces',
+                                         'cloud_mass_frac', 'strength_scaler',
                                    'fragment_mass_fractions'])
     
     # create a dataframe to store FCMmeteoroids

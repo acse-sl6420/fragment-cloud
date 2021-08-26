@@ -3,7 +3,8 @@ import fcm
 import fcm.atmosphere as atm
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy import random
+from numpy import random, vectorize
+from numpy.lib.ufunclike import _fix_and_maybe_deprecate_out_named_y
 from scipy.sparse.construct import rand
 import chromosome as ch
 import fitness as fit
@@ -36,7 +37,9 @@ def linear_regression(observation):
 
     return reg, poly
 
-def mate_pool_generater(group_count, event_count, observation):
+def mate_pool_generater(group_count, event_count, observation,
+                        velocity, angle,
+                        strength_lower_bound=1, strength_higher_bound=10000):
     """[generate the pool of chromosomes to mate]
 
     Parameters
@@ -64,25 +67,27 @@ def mate_pool_generater(group_count, event_count, observation):
                                         'fragment_mass_disp',
                                         'fitness_value'])
 
-    
     total_energy = t._total_energy(observation)
     # generate the events
     for i in range(event_count):
         # log uniform distribution
-        density = ch.RA_logdis_float(1500, 5000)
-        strength = ch.RA_logdis_float(1, 10000)
+        # density = ch.RA_logdis_float(1500, 5000)
+        density = ch.RA_logdis_float(2500, 3500)
+        # density = 3000
+        strength = ch.RA_logdis_float(strength_lower_bound,
+                                      1000)
 
         # generate structural groups
-        ch.groups_generater(groups_frame, density, strength, group_count)
-        ch.meteroid_generater(meteoroids_frame, 21.5, 81, density,
+        ch.groups_generater(groups_frame, density, strength, group_count,
+                            strength_higher_bound)
+        ch.meteroid_generater(meteoroids_frame, velocity, angle, density,
                               strength, cloud_mass_frac=0,
                               total_energy=total_energy,
                               ra_radius=True)
-        ch.FCMparameters_generater(param_frame, ablation_coeff=1.5e-8,
+        ch.FCMparameters_generater(param_frame, ablation_coeff=2.72e-8,
                                    cloud_disp_coeff=1,
                                    strengh_scaling_disp=0,
-                                   fragment_mass_disp=0,
-                                   RA_ablation=True)
+                                   fragment_mass_disp=0)
 
         # simulate this event
         # get the groups list
@@ -170,7 +175,8 @@ def selection(parent_count, pool):
 
 
 def update_fitness(group_dataframe, meteoroids_frame, param_frame,
-                   group_count, observation):
+                   group_count, observation, fitness_list,
+                   precision):
     """[update the fitness after cross-over or mutation]
 
     Parameters
@@ -181,10 +187,18 @@ def update_fitness(group_dataframe, meteoroids_frame, param_frame,
         [description]
     param_frame : [type]
         [description]
-    index : [type]
+    group_count : [type]
         [description]
+    observation : [type]
+        [description]
+    highest : [type]
+        [description]
+    is_break : bool, optional
+        [description], by default False
     """
-
+    # indicate whether the fitness error is lower than the threshold
+    highest = -1
+    is_break = False
     for index in range(len(meteoroids_frame)):
         groups_list = ch.compact_groups(group_dataframe, index, group_count)
 
@@ -209,10 +223,16 @@ def update_fitness(group_dataframe, meteoroids_frame, param_frame,
         
         # get the error of dEdz
         param['fitness_value'] = fit.dEdz_error(observation, simudata.energy_deposition)
+        fitness_list[index] = param['fitness_value']
+
+        if param['fitness_value'] < precision:
+            is_break = True
+            highest = index
 
     # get the fitness of dEdz
     fit.dEdz_fitness(param_frame)
 
+    return is_break, highest
 
 def cross_over(g_df, m_df, p_df,
                parents_index, g_count):
@@ -280,7 +300,7 @@ def choose_parent(p_df):
         [description]
     """
     # traverse the list to find the parent
-    prob1 = ch.RA_uniform_float(1.0, 1, 0, 1)[0]
+    prob1 = ch.RA_uniform_float(1.0, 1, 0, 1, round=".9f")[0]
 
     parent_1 = 0
     parent_2 = 0
@@ -290,17 +310,23 @@ def choose_parent(p_df):
         if prob1 >= p_df.loc[i, 'fitness_value'] and prob1 < p_df.loc[i+1, 'fitness_value']:
             parent_1 = i
             break
-    # parent_2 is different with parent_1
-    while (1):
-        prob2 = ch.RA_uniform_float(1.0, 1, 0, 1)[0]
-        for i in range(len(p_df) - 1):
-            if prob2 >= p_df.loc[i, 'fitness_value'] and prob2 < p_df.loc[i+1, 'fitness_value'] and i != parent_1:
-                parent_2 = i
-                is_break = True
-                break
-        if is_break is True:
+
+    prob2 = ch.RA_uniform_float(1.0, 1, 0, 1, round=".9f")[0]
+    for i in range(len(p_df) - 1):
+        if prob2 >= p_df.loc[i, 'fitness_value'] and prob2 < p_df.loc[i+1, 'fitness_value']:
+            parent_2 = i
             break
-    # print(parent_1, parent_2)
+    # print("p1 is " + str(parent_1) + ", p2 is " + str(parent_2))
+    # parent_2 is different with parent_1
+    # while (1):
+    #     prob2 = ch.RA_uniform_float(1.0, 1, 0, 1)[0]
+    #     for i in range(len(p_df) - 1):
+    #         if prob2 >= p_df.loc[i, 'fitness_value'] and prob2 < p_df.loc[i+1, 'fitness_value'] and i != parent_1:
+    #             parent_2 = i
+    #             is_break = True
+    #             break
+    #     if is_break is True:
+    #         break
     return parent_1, parent_2
         
 
@@ -329,7 +355,6 @@ def cross_over_test(g_df, m_df, p_df, offspring_count, group_count):
     while total < offspring_count:
         temp_prob = ch.RA_uniform_float(1.0, 1, 0, 1)[0]
         p1, p2 = choose_parent(p_df)
-        # print(p1, p2)
         total += 2
         # the probability of cross-over is 80%
         if temp_prob < cs_prob:
@@ -357,9 +382,9 @@ def cross_over_test(g_df, m_df, p_df, offspring_count, group_count):
                 index_2 = p2 * group_count + j
                 last_index = len(groups_frame)
                 groups_frame.loc[last_index, ['strength_scaler',
-                                                     'strength',
-                                                     'density',
-                                                     'cloud_mass_frac']] = g_df.loc[index_1, ['strength_scaler',
+                                              'strength',
+                                              'density',
+                                              'cloud_mass_frac']] = g_df.loc[index_1, ['strength_scaler',
                                                                                               'strength',
                                                                                               'density',
                                                                                               'cloud_mass_frac']]
@@ -419,13 +444,16 @@ def discrete_fitness(pool):
     pool_count = len(pool)
 
     # get the accumulative probability
-    for i in range(pool_count-1):
-        pool.loc[i+1, 'fitness_value'] = pool.loc[i+1, 'fitness_value'] - pool.loc[i, 'fitness_value']
+    # for i in range(pool_count-1):
+    #     temp = pool.loc[i, 'fitness_value']
+    #     pool.loc[i+1, 'fitness_value'] = pool.loc[i+1, 'fitness_value'] - pool.loc[i, 'fitness_value']
+    for i in range(pool_count - 1, 0, -1):
+        pool.loc[i, 'fitness_value'] = pool.loc[i, 'fitness_value'] - pool.loc[i-1, 'fitness_value']
 
 
 def mutation(g_df, m_df, p_df, group_count):
     # the probability of mutation is 3%
-    mu_prob = 0.03
+    mu_prob = 0.00
     for i in range(len(p_df)):
         temp_prob = ch.RA_uniform_float(1.0, 1, 0, 1)[0]
 
@@ -437,47 +465,63 @@ def mutation(g_df, m_df, p_df, group_count):
                                                                round='.9f')[0]
 
 if __name__ == "__main__":
-    group_count = 1
+    group_count = 4
     event_count = 10
-    offspring_count = 2
-    observation = fit.read_event(fit.Event.benesov)
-    group_dataframe, meteoroids_frame, param_frame = mate_pool_generater(group_count, event_count, observation)
+    offspring_count = 10
+    observation = fit.read_event(fit.Event.kosice)
+    veloctiy = 21.3
+    angle = 81
+    group_dataframe, meteoroids_frame, param_frame = mate_pool_generater(group_count,
+                                                                         event_count,
+                                                                         observation,
+                                                                         velocity=veloctiy,
+                                                                         angle=angle,
+                                                                         strength_lower_bound=1,
+                                                                         strength_higher_bound=5000)
+    print(param_frame)
     iteration = 1
 
-    # print(param_frame)
     # get the accumulate probability of events
     accumulate_probability(param_frame)
 
-    # first time to crossover
-    # off_gd, off_m, off_p = cross_over_test(group_dataframe, meteoroids_frame, param_frame, offspring_count, group_count)
+    # the index of highest fitness value
+    highest = -1
+    is_break = False
+    fitness_list = np.zeros((iteration, offspring_count))
 
     for i in range(iteration):
         print("the iteration is ", i)
         # cross-over
-        # cross_over(group_dataframe, meteoroids_frame, param_frame, parents_index, group_count)
         off_gd, off_m, off_p = cross_over_test(group_dataframe, meteoroids_frame, param_frame, offspring_count, group_count)
+
         # mutation
         mutation(off_gd, off_m, off_p, group_count)
 
         # update the fitness
-        update_fitness(off_gd, off_m, off_p, group_count, observation)
+        is_break, highest = update_fitness(off_gd, off_m, off_p, group_count, observation, fitness_list[i], 0.005)
+
+        if is_break is True:
+            print("Converged at " + str(i) + " iteration in advance")
+            break
 
         # update the parent dataframe
         group_dataframe = off_gd
         meteoroids_frame = off_m
         param_frame = off_p
 
-        # print(param_frame)
-
         # get the accumulate probability
         accumulate_probability(param_frame)
-        
+    
+    # print(param_frame)
+    # print(group_dataframe)
     # find the highest fitness value
     discrete_fitness(param_frame)
+    print(param_frame)
 
-    # # print(param_frame)
-    highest = param_frame['fitness_value'].idxmax()
-    # print(param_frame.loc[highest])
+    if not is_break:
+        highest = param_frame['fitness_value'].idxmax()
+    else:
+        print("The highest index is " + str(highest))
 
     groups_list = ch.compact_groups(group_dataframe, highest, group_count)
     # print the groups
@@ -506,6 +550,5 @@ if __name__ == "__main__":
     print(param)
     print(param_frame.loc[highest, 'ablation_coeff'])
     
-    # ch.plot_simulation(simudata.energy_deposition)
     observation.set_index("altitude [km]", inplace=True)
     t.plot_simulation(simudata.energy_deposition, observation)

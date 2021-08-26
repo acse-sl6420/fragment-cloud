@@ -10,62 +10,25 @@ import fcm.atmosphere as atm
 import matplotlib.pyplot as plt
 import tools as t
 
-class fcm_param_loader:
-    def __init__(self, bulk_density_range, strength_range,
-                 diameter_range, cloud_frac_range,
-                 number_of_frac_range, strengh_scale_range):
-        """[]
-
-        Parameters
-        ----------
-        bulk_density_range : [type]
-            [description]
-        strength_range : [type]
-            [description]
-        diameter_range : [type]
-            [description]
-        cloud_frac_range : [type]
-            [description]
-        number_of_frac_range : [type]
-            [description]
-        strengh_scale_range : [type]
-            [description]
-        """
-        # get the standard deviation of the input range
-        self.density_std = np.std(bulk_density_range)
-        self.strength_std = np.std(strength_range)
-        self.diameter_std = np.std(diameter_range)
-        self.cloud_frac_std = np.std(cloud_frac_range)
-        self.number_of_frac_std = np.std(number_of_frac_range)
-        self.strength_scale_std = np.std(strengh_scale_range)
-
-        # get the mean of the input range
-        self.density_mean = np.mean(bulk_density_range)
-        self.strength_mean = np.mean(strength_range)
-        self.diameter_mean = np.mean(diameter_range)
-        self.cloud_frac_mean = np.mean(cloud_frac_range)
-        self.number_of_frac_mean = np.mean(number_of_frac_range)
-        self.strength_scale_mean = np.mean(strengh_scale_range)
-
 
 def random_fraction(count, summation, is_even=False):
     """[Random generate several float numbers which sum up to a given number]
 
     Parameters
     ----------
-    count : [type]
-        [description]
-    summation : [type]
-        [description]
+    count : [int]
+        [The size of List]
+    summation : [float]
+        [The summation of all elements in List]
     is_even : bool, optional
-        [description], by default False
+        [False: the fraction is not equal;
+         True: the fraction is equal], by default False
 
     Returns
     -------
-    [type]
-        [description]
+    [List]
+        [Get a list, the summary of the element is summation]
     """
-    # np.random.seed(overall_seed)
     if not is_even:
         # random generate several numbers
         random_num = np.random.rand(count)
@@ -76,7 +39,6 @@ def random_fraction(count, summation, is_even=False):
         result = [summation/count for i in range(count)]
 
     return result
-
 
 def RA_logdis_float(low, high):
     """[using log uniform distribution to generate a random number]
@@ -197,7 +159,8 @@ def even_fragment(count):
     return result
 
 
-def groups_generater(groups, density, strength, group_count):
+def groups_generater(groups, density, strength, group_count,
+                     strength_higher_bound=10000):
     """[Generate the structural groups]
 
     Parameters
@@ -231,19 +194,19 @@ def groups_generater(groups, density, strength, group_count):
     elif group_count == 2:
         # This parameters is just suitable for benesov
         temp[0, 2] = strength
-        temp[1, 2] = RA_logdis_float(strength, 10000)
+        temp[1, 2] = RA_logdis_float(strength + 1000, strength_higher_bound)
     else:
-        temp[:, 2] = [RA_logdis_float(strength, 10000) for i in range(group_count)]
+        temp[:, 2] = [RA_logdis_float(strength, strength_higher_bound) for i in range(group_count)]
 
     # pieces
-    temp[:, 3] = RA_int(count=group_count, lower_bound=6, high_bound=16)
+    temp[:, 3] = RA_int(count=group_count, high_bound=5)
 
     # temp[:, 4] = RA_uniform_float(1.0, 1, 0.1, 0.9)[0]
     # cloud mass fraction
     temp[:, 4] = [RA_uniform_float(1.0, 1, 0.1, 0.9)[0] for i in range(group_count)]
 
     # strength scaler
-    temp[:, 5] = RA_uniform_float(1.0, group_count, 0.6, 1.0, round=".8f")[0]
+    temp[:, 5] = [RA_uniform_float(1.0, group_count, 0.1, 1.0, round=".8f")[0] for i in range(group_count)]
 
     fragment_mass_fractions = [even_fragment(int(temp[i][3]))
                                for i in range(group_count)]
@@ -282,8 +245,9 @@ def meteroid_generater(meteroids, velocity, angle, density,
     # calculate radius
     radius = t._radius(total_energy, density, velocity)
     if ra_radius:
-        total_energy = RA_uniform_float(total_energy, count, 0.7, 1.1)[0]
-        radius = t._radius(total_energy, density, velocity)
+        # total_energy = RA_uniform_float(total_energy, count, 0.5, 1.1)[0]
+        # radius = t._radius(total_energy, density, velocity)
+        radius = RA_uniform_float(radius, count, 0.6, 1.1)[0]
 
     parameters = [velocity, angle, density, radius, strength, cloud_mass_frac]
     meteroids.loc[len(meteroids)] = parameters
