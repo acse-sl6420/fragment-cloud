@@ -1,4 +1,4 @@
-# this script is to mute chromosomes
+# this script is to develop the evolvement process of GA
 import fcm
 import fcm.atmosphere as atm
 import numpy as np
@@ -17,25 +17,6 @@ import random
 # get the atmosphere of earth
 atmosphere = atm.US_standard_atmosphere()
 
-def linear_regression(observation):
-    """[summary]
-
-    Parameters
-    ----------
-    observation : [type]
-        [description]
-    """
-    X = observation['altitude [km]'].values.reshape(-1, 1)
-    y = observation['dEdz [kt TNT / km]'].values
-
-    # second degree polynomial
-    poly = PolynomialFeatures(degree=5)
-    poly.fit(X)
-    X2 = poly.transform(X)
-    reg = LinearRegression().fit(X2, y)
-    y_pre = reg.predict(X2)
-
-    return reg, poly
 
 def mate_pool_generater(group_count, event_count, observation,
                         velocity, angle,
@@ -141,9 +122,9 @@ def selection(parent_count, pool):
     Parameters
     ----------
     parent_count : [int]
-        [should be lower than event_count]
+        [Should be lower than event_count]
     pool : [DataFrame]
-        [the last column of it is the information of fitness]
+        [The last column of it is the information of fitness]
 
     Returns
     -------
@@ -234,70 +215,19 @@ def update_fitness(group_dataframe, meteoroids_frame, param_frame,
 
     return is_break, highest
 
-def cross_over(g_df, m_df, p_df,
-               parents_index, g_count):
-    """[according to the probability to cross over parents]
-
-    Parameters
-    ----------
-    group_dataframe : [type]
-        [description]
-    meteoroids_frame : [type]
-        [description]
-    param_frame : [type]
-        [description]
-    parents_index : [type]
-        [description]
-    """
-    prob = 1.0
-    parents_count = len(parents_index)
-
-    for i in range(int(parents_count / 2)):
-        # generate a random float number between 0 to 1
-        temp_prob = ch.RA_uniform_float(1.0, 1, 0, 1)[0]
-
-        # according to the probability
-        if temp_prob < prob:
-            # randomly choosed two parents cross-over
-            slice = random.sample(parents_index, 2)
-            p1 = slice[0]
-            p2 = slice[1]
-
-            # in terms of groups, cross-over strength_scaler
-            for j in range(g_count):
-                index_1 = p1 * g_count + j
-                index_2 = p2 * g_count + j
-                
-                # exchange
-                g_df.at[index_1, 'strength_scaler'], g_df.at[index_2, 'strength_scaler'] = g_df.at[index_2, 'strength_scaler'], g_df.at[index_1, 'strength_scaler']
-                g_df.at[index_1, 'strength'], g_df.at[index_2, 'strength'] = g_df.at[index_2, 'strength'], g_df.at[index_1, 'strength']
-                # g_df.at[index_1, 'pieces'], g_df.at[index_2, 'pieces'] = g_df.at[index_2, 'pieces'], g_df.at[index_1, 'pieces']
-                g_df.at[index_1, 'density'], g_df.at[index_2, 'density'] = g_df.at[index_2, 'density'], g_df.at[index_1, 'density']
-                g_df.at[index_1, 'cloud_mass_frac'], g_df.at[index_2, 'cloud_mass_frac'] = g_df.at[index_2, 'cloud_mass_frac'], g_df.at[index_1, 'cloud_mass_frac']
-                # g_df.at[index_1, 'fragment_mass_fractions'], g_df.at[index_2, 'fragment_mass_fractions'] = g_df.at[index_2, 'fragment_mass_fractions'], g_df.at[index_1, 'fragment_mass_fractions']
-
-
-            # # in terms of meteoroid, cross-over radius and strength
-            m_df.at[p1, 'strength'], m_df.at[p2, 'strength'] = m_df.at[p2, 'strength'], m_df.at[p1, 'strength']
-            m_df.at[p1, 'density'], m_df.at[p2, 'density'] = m_df.at[p2, 'density'], m_df.at[p1, 'density']
-
-            p_df.at[p1, 'ablation_coeff'], p_df.at[p2, 'ablation_coeff'] = p_df.at[p2, 'ablation_coeff'], p_df.at[p1, 'ablation_coeff']
-
-    # update the fitness value
-
 
 def choose_parent(p_df):
-    """[choose parents]
+    """[choose parents from the population]
 
     Parameters
     ----------
-    p_df : [type]
-        [description]
+    p_df : [DataFrame]
+        [The DataFrame stores the population]
 
     Returns
     -------
-    [type]
-        [description]
+    [int]
+        [The index of parents]
     """
     # traverse the list to find the parent
     prob1 = ch.RA_uniform_float(1.0, 1, 0, 1, round=".9f")[0]
@@ -316,21 +246,30 @@ def choose_parent(p_df):
         if prob2 >= p_df.loc[i, 'fitness_value'] and prob2 < p_df.loc[i+1, 'fitness_value']:
             parent_2 = i
             break
-    # print("p1 is " + str(parent_1) + ", p2 is " + str(parent_2))
-    # parent_2 is different with parent_1
-    # while (1):
-    #     prob2 = ch.RA_uniform_float(1.0, 1, 0, 1)[0]
-    #     for i in range(len(p_df) - 1):
-    #         if prob2 >= p_df.loc[i, 'fitness_value'] and prob2 < p_df.loc[i+1, 'fitness_value'] and i != parent_1:
-    #             parent_2 = i
-    #             is_break = True
-    #             break
-    #     if is_break is True:
-    #         break
     return parent_1, parent_2
-        
 
-def cross_over_test(g_df, m_df, p_df, offspring_count, group_count):
+
+def cross_over(g_df, m_df, p_df, offspring_count, group_count):
+    """[The crossover process of the GA]
+
+    Parameters
+    ----------
+    g_df : [DataFrame]
+        [The DataFrame stores the structrual groups]
+    m_df : [DataFrame]
+        [The DataFrame stores the meteroids]
+    p_df : [DataFrame]
+        [The DataFrame stores the FCM_parameters]
+    offspring_count : [int]
+        [The count of next population]
+    group_count : [int]
+        [The count of structual group]
+
+    Returns
+    -------
+    [DataFrame]
+        [The DataFrame of structural groups, meteoroids, and FCM_parameters]
+    """
     total = 0
 
     # create a dataframe to store structural_groups
@@ -433,8 +372,9 @@ def cross_over_test(g_df, m_df, p_df, offspring_count, group_count):
 
     return groups_frame, meteoroids_frame, param_frame
 
+
 def discrete_fitness(pool):
-    """[get the probability of each event]
+    """[get the probability of each event from a accumulation probability]
 
     Parameters
     ----------
@@ -443,15 +383,25 @@ def discrete_fitness(pool):
     """
     pool_count = len(pool)
 
-    # get the accumulative probability
-    # for i in range(pool_count-1):
-    #     temp = pool.loc[i, 'fitness_value']
-    #     pool.loc[i+1, 'fitness_value'] = pool.loc[i+1, 'fitness_value'] - pool.loc[i, 'fitness_value']
+
     for i in range(pool_count - 1, 0, -1):
         pool.loc[i, 'fitness_value'] = pool.loc[i, 'fitness_value'] - pool.loc[i-1, 'fitness_value']
 
 
 def mutation(g_df, m_df, p_df, group_count):
+    """[Mutation process in the GA]
+
+    Parameters
+    ----------
+    g_df : [DataFrame]
+        [The DataFrame to store the ]
+    m_df : [type]
+        [description]
+    p_df : [type]
+        [description]
+    group_count : [type]
+        [description]
+    """
     # the probability of mutation is 3%
     mu_prob = 0.00
     for i in range(len(p_df)):
@@ -463,6 +413,7 @@ def mutation(g_df, m_df, p_df, group_count):
             # mutate the ablation_coeff
             p_df.at[i, 'ablation_coeff'] = ch.RA_uniform_float(1.0, 1, 1e-9, 9e-8,
                                                                round='.9f')[0]
+
 
 if __name__ == "__main__":
     group_count = 4
@@ -492,7 +443,7 @@ if __name__ == "__main__":
     for i in range(iteration):
         print("the iteration is ", i)
         # cross-over
-        off_gd, off_m, off_p = cross_over_test(group_dataframe, meteoroids_frame, param_frame, offspring_count, group_count)
+        off_gd, off_m, off_p = cross_over(group_dataframe, meteoroids_frame, param_frame, offspring_count, group_count)
 
         # mutation
         mutation(off_gd, off_m, off_p, group_count)
@@ -511,10 +462,7 @@ if __name__ == "__main__":
 
         # get the accumulate probability
         accumulate_probability(param_frame)
-    
-    # print(param_frame)
-    # print(group_dataframe)
-    # find the highest fitness value
+
     discrete_fitness(param_frame)
     print(param_frame)
 

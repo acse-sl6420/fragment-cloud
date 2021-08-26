@@ -11,7 +11,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import chromosome as ch
 import tools as t
-from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_squared_error
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -68,13 +67,13 @@ def dEdz_fitness(event_pool):
 
     Parameters
     ----------
-    event_pool : [dataframe]
-        [description]
+    event_pool : [DataFrame]
+        [The DataFrame including the fitness]
 
     Returns
     -------
-    [type]
-        [description]
+    [DataFrame]
+        [Update the fitness column of the input event_pool]
     """
     error_sum = 0
     fitness_sum = 0
@@ -98,10 +97,10 @@ def dEdz_error(observation, dEdz):
 
     Parameters
     ----------
-    observation : [type]
-        [description]
-    dEdz : [type]
-        [description]
+    observation : [DataFrame]
+        [The DataFrame recording the observed energy deposition.]
+    dEdz : [DataFrame]
+        [The DataFrame recording the simulated energy deposition]
     """
     # make observation round to 2 decimal places
     observation = observation.round({'altitude [km]': 2})

@@ -40,23 +40,24 @@ def random_fraction(count, summation, is_even=False):
 
     return result
 
+
 def RA_logdis_float(low, high):
-    """[using log uniform distribution to generate a random number]
+    """[Using log uniform distribution to generate a random number]
 
     Parameters
     ----------
-    mean : [type]
-        [description]
-    higher_bound : [type]
-        [description]
+    low : [float]
+        [the lower boundry of the result]
+    high : [float]
+        [the higher boudry of the result]
 
     Returns
     -------
-    [type]
-        [description]
+    [float]
+        [One random numbers]
     """
     return np.exp(np.random.uniform(np.log(low), np.log(high)))
-    
+
 
 def RA_uniform_float(amplifier, count, lower_bound=0.1, high_bound=1.0,
                      round='.2f'):
@@ -64,54 +65,26 @@ def RA_uniform_float(amplifier, count, lower_bound=0.1, high_bound=1.0,
 
     Parameters
     ----------
-    amplifier : [type]
-        [description]
+    amplifier : [float]
+        [The result is amplifier * result]
+    count : [int]
+        [The count of result]
     lower_bound : float, optional
-        [description], by default 0.1
+        [The lower boundry of the random number], by default 0.1
     high_bound : float, optional
-        [description], by default 1.0
-    count : [type], optional
-        [description], by default group_count
+        [The higher boundry of the random number], by default 1.0
+    round : str, optional
+        [Float number round to a format], by default '.2f'
 
     Returns
     -------
     [type]
-        [description]
+        [Return a list, each element in it is between lower_bound and
+         high_bound]
     """
     # format function returns string, so need float() to transform it to float.
-    # random.seed(seed)
     result = [float(format(amplifier * np.random.uniform(
               lower_bound, high_bound), round)) for i in range(count)]
-    return result
-
-
-def random_fraction(count, summation, is_even=False):
-    """[Random generate several float numbers which sum up to a given number]
-
-    Parameters
-    ----------
-    count : [type]
-        [description]
-    summation : [type]
-        [description]
-    is_even : bool, optional
-        [description], by default False
-
-    Returns
-    -------
-    [type]
-        [description]
-    """
-    # np.random.seed(overall_seed)
-    if not is_even:
-        # random generate several numbers
-        random_num = np.random.rand(count)
-        # get the ratio of each number
-        ratio = summation / sum(random_num)
-        result = random_num * ratio
-    else:
-        result = [summation/count for i in range(count)]
-
     return result
 
 
@@ -120,21 +93,19 @@ def RA_int(count, amplifier=1, lower_bound=2, high_bound=16):
 
     Parameters
     ----------
-    count : [type]
-        [description]
+    count : [int]
+        [The size of List]
     amplifier : int, optional
-        [description], by default 1
+        [The element in the list = amplifier * random float], by default 1
     lower_bound : int, optional
-        [description], by default 2
+        [The lower bound of element in List], by default 2
     high_bound : int, optional
-        [description], by default 16
-    seed : [type], optional
-        [description], by default overall_seed
+        [The higher bound of element in List], by default 16
 
     Returns
     -------
-    [type]
-        [description]
+    [List]
+        [A list including several random int number]
     """
     result = [amplifier * random.randint(lower_bound, high_bound)
               for i in range(count)]
@@ -147,13 +118,13 @@ def even_fragment(count):
 
     Parameters
     ----------
-    count : [type]
-        [description]
+    count : [int]
+        [The count of the List]
 
     Returns
     -------
     [type]
-        [description]
+        [A list, which element is 1/count]
     """
     result = [1/count for i in range(count)]
     return result
@@ -165,17 +136,17 @@ def groups_generater(groups, density, strength, group_count,
 
     Parameters
     ----------
-    density : [type]
-        [description]
-    min_strength : [type]
-        [description]
-
-    Returns
-    -------
-    [type]
-        [description]
+    groups : [Dataframe]
+        [The dataframe store the structural groups]
+    density : [float]
+        [The density of the meteoroid]
+    strength : [float]
+        [The strength of the meteoroid]
+    group_count : [int]
+        [the count of structural groups]
+    strength_higher_bound : int, optional
+        [The higher bound of the strength], by default 10000
     """
-
     param_count = 6
     temp = np.zeros((group_count, param_count))
 
@@ -228,6 +199,37 @@ def meteroid_generater(meteroids, velocity, angle, density,
                        ra_angle=False, ra_density=False, ra_radius=False,
                        ra_strength=False, ra_cloud_mass_frac=False,
                        ):
+    """[Generate the parameters of meteroids]
+
+    Parameters
+    ----------
+    meteroids : [DataFrame]
+        [The DataFrame storing meteroids]
+    velocity : [float]
+        [The velocity of meteoroids]
+    angle : [float]
+        [The angle of meteoroids]
+    density : [float]
+        [The density of meteoroids]
+    strength : [float]
+        [The strength of meteoroids]
+    cloud_mass_frac : [float]
+        [The cloud_mass_frac of meteoroids]
+    total_energy : [float]
+        [The total_energy of meteoroids read from the observation]
+    ra_velocity : bool, optional
+        [Randomly generate velocity or not], by default False
+    ra_angle : bool, optional
+        [Randomly generate angle or not], by default False
+    ra_density : bool, optional
+        [Randomly generate density or not], by default False
+    ra_radius : bool, optional
+        [Randomly generate radius or not], by default False
+    ra_strength : bool, optional
+        [Randomly generate strength or not], by default False
+    ra_cloud_mass_frac : bool, optional
+        [Randomly generate cloud_mass_frac or not], by default False
+    """
     count = 1
 
     # randomly generated velocity
@@ -259,19 +261,35 @@ def FCMparameters_generater(parameters, cloud_disp_coeff,
                             RA_cloud_disp_coeff=False,
                             RA_strengh_scaling_disp=False,
                             RA_fragment_mass_disp=False):
-    """[Generate the FCMparameters]
+    """[Generate the FCMparameters]
 
     Parameters
     ----------
-    atmosphere : [type]
-        [description]
-    precision : [type]
-        [description]
-    ablation_coeff : [type]
-        [description]
-    cloud_disp_coeff : [type]
-        [description]
+    parameters : [DataFrame]
+        [The DataFrame storing the parameters of meteoroids]
+    cloud_disp_coeff : [float]
+        [The ablation coefficient of the FCM]
+    strengh_scaling_disp : [float]
+        [The strength scaling dispersion the FCM]
+    fragment_mass_disp : [float]
+        [The fragment mass dispersion of the FCM]
+    ablation_coeff : [float]
+        [The ablation coefficient of the FCM]
+    RA_ablation : bool, optional
+        [Randomly generate the ablation_coeff or not], by default False
+    RA_cloud_disp_coeff : bool, optional
+        [Randomly generate the cloud_disp_coeff or not], by default False
+    RA_strengh_scaling_disp : bool, optional
+        [Randomly generate the strengh_scaling_disp or not], by default False
+    RA_fragment_mass_disp : bool, optional
+        [Randomly generate the fragment_mass_disp or not], by default False
+
+    Returns
+    -------
+    [DataFrame]
+        [The DataFrame storing the information of Parameters chromosome]
     """
+
     count = 1
     if RA_ablation:
         ablation_coeff = RA_uniform_float(1.0, count, 1e-9, 9e-8,
@@ -295,20 +313,24 @@ def FCMparameters_generater(parameters, cloud_disp_coeff,
     return parameters
 
 
-def plot_simulation(dEdz):
-    fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-    plt.plot(dEdz.to_numpy(), dEdz.index.to_numpy(), label='fcm')
-
-    plt.xlabel("dEdz [kt TNT / km]")
-    plt.ylabel("altitude [km]")
-    plt.xscale('log')
-    plt.legend(loc='best')
-    plt.show()
-    # plt.savefig("lvshiqi.png")
-
-    return fig
-
 def compact_groups(groups_dataframe, event_index, group_count):
+    """[Compact the Structural_group chromosome to the list
+        StructuralGroup in FCM library]
+
+    Parameters
+    ----------
+    groups_dataframe : [DataFrame]
+        [The DataFrame stores the information of the structural groups]
+    event_index : [int]
+        [The index of this event]
+    group_count : [int]
+        [The count of structural group]
+
+    Returns
+    -------
+    [List]
+        [Return a list of StructuralGroup]
+    """
     groups_list = []
     for i in range(group_count):
         temp = groups_dataframe.loc[i + event_index * group_count]
@@ -319,93 +341,11 @@ def compact_groups(groups_dataframe, event_index, group_count):
                            cloud_mass_frac=temp['cloud_mass_frac'],
                            strength_scaler=temp['strength_scaler'],
                            fragment_mass_fractions=temp['fragment_mass_fractions']))
-    
+
     return groups_list
 
+
 if __name__ == "__main__":
-    # define the range of some parameters which maybe
-    # log distribution
-    # bulk_density_range = np.arange(1.5, 5, 0.1)
-    # strength_range = np.arange(1, 10000, 1)
-    # diameter_range = np.arange(0.1, 100, 0.1)
-    # cloud_frac_range = np.arange(0.1, 0.9, 0.1)
-    # number_of_frac_range = np.arange(2, 16, 1)
-    # strengh_scale_range = np.arange(0.1, 0.9, 0.1)
-
-    # # create dataframe to store structural groups
-    # groups = pd.DataFrame(columns=['mass_fraction', 'density',
-    #                                'strength', 'pieces',
-    #                                'cloud_mass_frac', 'strength_scaler',
-    #                                'fragment_mass_fractions'])
-
-    # # ############## generate structural groups ####################
-    # # log uniform distribution
-    # density = RA_logdis_float(1500, 5000)
-
-    # # log uniform distribution
-    # strength = RA_logdis_float(1, 10000)
-    # cloud_frac = RA_uniform_float(1.0, 1, 0.1, 0.9)[0]
-
-    # # genarate structural groups
-    # structural_group_count = 2
-    # groups_generater(groups, density, strength, structural_group_count,
-    #                  cloud_frac)
-
-    # # ################### generate meteroid ########################
-    # # radius is log distribution
-    # meteoroids = pd.DataFrame(columns=['velocity', 'angle',
-    #                                    'density', 'radius',
-    #                                    'strength', 'cloud_mass_frac'])
-
-    # radius = 2.5
-
-    # # the cloud_frac is same as structural groups
-    # meteroid_generater(meteoroids, 21.3, 81, density, radius,
-    #                    strength, cloud_frac, ra_radius=True)
-
-    # # ################### FCMparameters ###########
-    # parameters = pd.DataFrame(columns=['ablation_coeff', 'cloud_disp_coeff',
-    #                                    'strengh_scaling_disp', 'fragment_mass_disp'
-    #                                    'fitness_value'])
-
-    # FCMparameters = FCMparameters_generater(parameters, ablation_coeff=1e-8,
-    #                                         cloud_disp_coeff=2/3.5,
-    #                                         strengh_scaling_disp=0,
-    #                                         fragment_mass_disp=0,
-    #                                         RA_ablation=True)
-
-    # # simulate
-    # # create the structural groups
-    # groups_list = []
-    # for i in range(structural_group_count):
-    #     temp = groups.loc[i]
-    #     groups_list.append(fcm.StructuralGroup(mass_fraction=temp['mass_fraction'], 
-    #                                     density=temp['density'],
-    #                                     strength=temp['strength'],
-    #                                     pieces=int(temp['pieces']),
-    #                                     cloud_mass_frac=temp['cloud_mass_frac'],
-    #                                     strength_scaler=temp['strength_scaler'],
-    #                                     fragment_mass_fractions=temp['fragment_mass_fractions']))
-    
-    # test = meteoroids.loc[0]
-    # meteroid_params = fcm.FCMmeteoroid(test['velocity'], test['angle'],
-    #                                    test['density'], test['radius'],
-    #                                    test['strength'], test['cloud_mass_frac'],
-    #                                    groups_list)
-
-    # param = parameters.loc[0]
-    # atmosphere = atm.US_standard_atmosphere()
-    # params = fcm.FCMparameters(9.81, 6371, atmosphere, ablation_coeff=2.72e-8,
-    #                            cloud_disp_coeff=1, strengh_scaling_disp=0,
-    #                            fragment_mass_disp=0, precision=1e-2)
-
-    # # simulate
-    # simudata = fcm.simulate_impact(params, meteroid_params, 100,
-    #                                craters=False, dedz=True, final_states=True)
-
-    # plot_simulation(simudata.energy_deposition)
-
-
     # create a dataframe to store paramters
     param_frame = pd.DataFrame(columns=['ablation_coeff', 'cloud_disp_coeff',
                                         'strengh_scaling_disp',
