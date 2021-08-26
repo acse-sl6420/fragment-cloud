@@ -1,4 +1,3 @@
-# this script is to mute chromosomes
 import fcm
 import fcm.atmosphere as atm
 import numpy as np
@@ -10,6 +9,18 @@ import fitness as fit
 import pandas as pd
 
 def _total_energy(observation):
+    """[Calculate the total energy deposition from the observation]
+
+    Parameters
+    ----------
+    observation : [DataFrame]
+        [The DataFrame read from the observation .csv]
+
+    Returns
+    -------
+    [int]
+        [description]
+    """
     total_energy = abs(sum(observation['altitude [km]'].diff().to_numpy()[1:] *
                            observation['dEdz [kt TNT / km]'].to_numpy()[1:])) * 4.184e12
     
@@ -37,6 +48,20 @@ def _radius(energy, density, velocity):
     return radius
 
 def plot_simulation(dEdz, observation):
+    """[Plot the simulation with min and max observation]
+
+    Parameters
+    ----------
+    dEdz : [DataFrame]
+        [The simulation]
+    observation : [DataFrame]
+        [The observation]
+
+    Returns
+    -------
+    [Figure]
+        [The plot of simulation compared with observation]
+    """
     mask = np.logical_and(dEdz.index.to_numpy() >= observation.index.min(),
                           dEdz.index.to_numpy() <= observation.index.max())
     

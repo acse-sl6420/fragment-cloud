@@ -268,7 +268,7 @@ def cross_over(g_df, m_df, p_df, offspring_count, group_count):
     Returns
     -------
     [DataFrame]
-        [The DataFrame of structural groups, meteoroids, and FCM_parameters]
+        [The DataFrame of structural groups, meteoroids, and FCM_param]
     """
     total = 0
 
